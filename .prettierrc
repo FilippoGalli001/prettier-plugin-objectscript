@@ -1,0 +1,5 @@
+{
+  "plugins": ["./index.js"],
+  "objectScriptCommandCase": "title",
+  "objectScriptExpandCommands": true
+}

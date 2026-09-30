@@ -1,0 +1,44 @@
+{
+  "name": "prettier-plugin-objectscript",
+  "version": "1.0.0",
+  "description": "A Prettier 3 plugin for InterSystems ObjectScript class files.",
+  "keywords": [
+    "prettier",
+    "prettier-plugin",
+    "objectscript",
+    "intersystems",
+    "iris"
+  ],
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "format:example": "prettier --plugin ./index.js example.cls",
+    "inspect:ast": "node scripts/inspect-ast.js",
+    "test": "node --test tests/plugin.test.js",
+    "test:update": "node scripts/update-fixtures.js"
+  },
+  "engines": {
+    "node": ">=18.14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "prettier": ">=3.0.0 <4.0.0"
+  },
+  "dependencies": {
+    "tree-sitter": "0.25.1",
+    "tree-sitter-objectscript": "https://github.com/intersystems/tree-sitter-objectscript/archive/6ee63cf01590446f4e64b6c048739bfe7d23408b.tar.gz"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}
