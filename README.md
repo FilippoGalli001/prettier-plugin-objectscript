@@ -7,6 +7,7 @@ An opinionated [Prettier 3](https://prettier.io/) plugin for InterSystems Object
 - canonical command casing and optional abbreviation expansion (`s` → `Set`);
 - indentation for classes, methods, blocks, commands and JSON literals;
 - formatting for ObjectScript expressions, arguments, types and object references;
+- configurable brace position for class and member declarations (`next-line` by default);
 - optional strict parsing;
 - selective AST debugging on `stderr`;
 - regression tests for expected output, valid output syntax and idempotence.
@@ -120,6 +121,7 @@ The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is p
 | ---------------------------- | ------- | ----------------------------------------------------------- |
 | `objectScriptCommandCase`    | `title` | `title`, `uppercase` or `lowercase` command casing.         |
 | `objectScriptExpandCommands` | `true`  | Expands command abbreviations.                              |
+| `objectScriptBraceStyle`     | `next-line` | `next-line` or `same-line`: position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. |
 | `objectScriptStrictParsing`  | `false` | Throws when Tree-sitter reports `ERROR` or missing nodes.   |
 | `objectScriptDebug`          | `false` | Enables AST diagnostics on `stderr`.                        |
 | `objectScriptDebugNodes`     | `""`    | Comma-separated node types to trace. Empty means all types. |
@@ -127,12 +129,12 @@ The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is p
 | `objectScriptDebugFile`      | `""`    | Only traces paths containing this value.                    |
 | `objectScriptDebugMax`       | `200`   | Maximum debug records per formatting run.                   |
 
-Strict parsing is opt-in because the upstream grammar can still report an error for some valid legacy ObjectScript constructs. The test suite separately guarantees that every generated fixture parses without errors.
+Strict parsing is opt-in because the upstream grammar can still report an error for some valid legacy ObjectScript constructs (the pinned version no longer does for `ClientMethod`, macros used as statements, `Property` arguments or `Index ... On` with `ELEMENTS`/`KEYS`). The test suite separately guarantees that every generated fixture parses without errors.
 
 ## Limitations
 
 - Only class definition files (`.cls`, UDL format) are supported. Routines (`.mac`, `.int`, `.inc`) are not.
-- Opening braces are placed on the same line as class and member declarations (`ClassMethod Run() {`). InterSystems documentation always shows them on their own line: check that your IRIS version and your tooling accept this style before formatting a shared codebase.
+- Control-flow blocks (`If`, `For`, `Try`, ...) always keep the opening brace on the same line. `objectScriptBraceStyle` only affects class and member declarations: `next-line` (default) follows the InterSystems documentation, `same-line` gives `ClassMethod Run() {`.
 - The content of `XData`, `Storage` and `Query` blocks, and of triggers or methods written in a language other than ObjectScript (SQL, Python, ...), is preserved verbatim.
 - Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them.
 

@@ -235,7 +235,7 @@ ${storage}
   assert.ok(formatted.includes(`{\n${python}\n  }`), formatted);
   assert.ok(formatted.includes(`{\n${sql}\n  }`), formatted);
   assert.ok(formatted.includes(`{\n${storage}\n  }`), formatted);
-  assert.match(formatted, /XData Spec \[MimeType = application\/yaml\] \{/);
+  assert.match(formatted, /XData Spec \[MimeType = application\/yaml\]\n {2}\{/);
   assert.equal(await format(formatted), formatted);
 });
 
@@ -248,7 +248,7 @@ Trigger Upd [ Event = UPDATE ]
 }`;
   const formatted = await format(input);
 
-  assert.match(formatted, /Trigger Upd \[Event = UPDATE\] \{\n {4}Set x = 1\n {2}\}/);
+  assert.match(formatted, /Trigger Upd \[Event = UPDATE\]\n {2}\{\n {4}Set x = 1\n {2}\}/);
 });
 
 test("preserves the internal alignment of block comments", async () => {
@@ -360,4 +360,44 @@ test("selective debug writes only to stderr and filters nodes", async () => {
     records.every((line) => line.includes('"type":"oref_chain_segment"')),
   );
   assert.doesNotMatch(formatted, /objectscript-debug/);
+});
+
+test("places the opening brace of declarations on the next line by default", async () => {
+  const input = `Class Demo Extends %Persistent {
+XData Spec [ MimeType = application/xml ] {
+<a/>
+}
+Trigger Upd [ Event = UPDATE ] {
+ s x=1
+}
+Method X() {
+ if x { w 1 } else { w 2 }
+ try { w 1 } catch e { w 2 }
+}
+Method Empty() { }
+}`;
+  const formatted = await format(input);
+
+  assert.match(formatted, /^Class Demo Extends %Persistent\n\{\n/);
+  assert.match(formatted, /\n {2}XData Spec \[MimeType = application\/xml\]\n {2}\{\n<a\/>\n {2}\}/);
+  assert.match(formatted, /\n {2}Trigger Upd \[Event = UPDATE\]\n {2}\{\n/);
+  assert.match(formatted, /\n {2}Method X\(\)\n {2}\{\n/);
+  assert.match(formatted, /\n {2}Method Empty\(\)\n {2}\{\n {2}\}\n/);
+  // Control-flow blocks keep the brace on the same line.
+  assert.match(formatted, /If x \{[\s\S]*\} Else \{/);
+  assert.match(formatted, /Try \{[\s\S]*\} Catch e \{/);
+  assert.equal(diagnostics(formatted).length, 0);
+  assert.equal(await format(formatted), formatted);
+});
+
+test("objectScriptBraceStyle same-line keeps the brace on the declaration line", async () => {
+  const input = "Class Demo\n{\nClassMethod X(a As %String)\n{\n Quit\n}\n}";
+  const options = { objectScriptBraceStyle: "same-line" };
+  const formatted = await format(input, options);
+
+  assert.equal(
+    formatted,
+    "Class Demo {\n  ClassMethod X(a As %String) {\n    Quit\n  }\n}\n",
+  );
+  assert.equal(await format(formatted, options), formatted);
 });

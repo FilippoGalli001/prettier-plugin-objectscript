@@ -1,13 +1,16 @@
 /// examples for ObjectScript Tutorial
-Class ObjectScript.Examples {
+Class ObjectScript.Examples
+{
   /// demo of public and private methods, along with a public variable
-  ClassMethod PrivatePublic() {
+  ClassMethod PrivatePublic()
+  {
     Do ..Private() // call a private method
     Do ..Public(9) // call a public method
   }
 
   /// a private method with public variable a
-  ClassMethod Private() [Private, PublicList = a] {
+  ClassMethod Private() [Private, PublicList = a]
+  {
     Write !, "setting a" Set a = 1
     Write !, "setting b" Set b = 2
     Write !, "setting c" Set c = 3
@@ -15,13 +18,15 @@ Class ObjectScript.Examples {
   }
 
   /// a public method with an argument and a return value
-  ClassMethod Public(num As %Numeric) As %String {
+  ClassMethod Public(num As %Numeric) As %String
+  {
     Write !, "my favorite number is ", num
     Return "This is my return value!!!"
   }
 
   /// demo of passing arguments by value and reference
-  ClassMethod PassingArguments(num As %Numeric) {
+  ClassMethod PassingArguments(num As %Numeric)
+  {
     // pass by value    read !, "Enter a number: ", num
     Set dblnum = ..DoubleByVal(num)
     Write !, "By Value: ", num, " doubled is: ", dblnum
@@ -36,30 +41,32 @@ Class ObjectScript.Examples {
     Write !, "By Reference 2: ", num, " doubled again is: ", result
   }
 
-  ClassMethod DoubleByVal(anynumber As %Numeric) As %Numeric {
+  ClassMethod DoubleByVal(anynumber As %Numeric) As %Numeric
+  {
     Return anynumber*2
   }
 
-  ClassMethod DoubleByRef1(ByRef anynumber As %Numeric) {
+  ClassMethod DoubleByRef1(ByRef anynumber As %Numeric)
+  {
     Set anynumber = anynumber*2
   }
 
-  ClassMethod DoubleByRef2(
-    anynumber As %Numeric,
-    Output retnumber As %Numeric
-  ) {
+  ClassMethod DoubleByRef2(anynumber As %Numeric, Output retnumber As %Numeric)
+  {
     Set retnumber = anynumber*2
   }
 
   /// demo of <UNDEFINED> error
-  ClassMethod BadMethod() {
+  ClassMethod BadMethod()
+  {
     Set a = 1
     Set b = 2
     Write c
   }
 
   /// root for my favorite team
-  ClassMethod Root() {
+  ClassMethod Root()
+  {
     Read "Team: ", t
     If (t="") {
       Quit
@@ -72,7 +79,8 @@ Class ObjectScript.Examples {
   }
 
   /// demos of many Ifs
-  ClassMethod If() {
+  ClassMethod If()
+  {
     Set x = 5, y = 0, z = -5
     If (x=5) {
       Write !, "x is equal to 5"
@@ -170,16 +178,19 @@ Class ObjectScript.Examples {
     }
   }
 
-  ClassMethod Celebrate() {
+  ClassMethod Celebrate()
+  {
     Write !, "Yippee! I won!"
   }
 
-  ClassMethod Complain() {
+  ClassMethod Complain()
+  {
     Write !, "Oh well, I lost."
   }
 
   /// demos of the For construct
-  ClassMethod For() {
+  ClassMethod For()
+  {
     For i = 1:1:8 {
       Write !, "I ", i, " the sandbox."
     }
@@ -212,7 +223,8 @@ Class ObjectScript.Examples {
   }
 
   /// generate Fibonacci sequences
-  ClassMethod Fibonacci() {
+  ClassMethod Fibonacci()
+  {
     Read !, "Generate Fibonacci sequence up to where? ", upto
 
     Set t1 = 1, t2 = 1, fib = 1
@@ -231,7 +243,8 @@ Class ObjectScript.Examples {
   }
 
   /// examples of system and custom exceptions
-  ClassMethod Exceptions(x As %Numeric) {
+  ClassMethod Exceptions(x As %Numeric)
+  {
     // <UNDEFINED> error throws a system exception
     Try {
       Write "Hello!", !, xyz
@@ -267,7 +280,8 @@ Class ObjectScript.Examples {
   }
 
   /// examples of JSON
-  ClassMethod JSON() {
+  ClassMethod JSON()
+  {
     // create a JSON object
     Set jo1 = {"PartNum": "678LM", "Price": "7.99", "Quantity": "100"}
     // create a JSON array, and add it to the object
@@ -305,7 +319,8 @@ Class ObjectScript.Examples {
   }
 
   /// loop through last names of the ^PersonI global, 2 different ways
-  ClassMethod SimpleLoop() {
+  ClassMethod SimpleLoop()
+  {
     Write !, "Using argumentless For"
     Set ln = "" // initialize to the empty string to make $order return the first last name
     For {
@@ -325,7 +340,8 @@ Class ObjectScript.Examples {
   }
 
   /// Loop through the name index and display the records
-  ClassMethod NameLoop() {
+  ClassMethod NameLoop()
+  {
     // loop through last names
     Set ln = ""
     For {
@@ -351,7 +367,8 @@ Class ObjectScript.Examples {
   }
 
   /// loop through last names that FOLLOW a substring (including the substring)
-  ClassMethod FocusedLoopStart() {
+  ClassMethod FocusedLoopStart()
+  {
     Read "Search for: ", substring
     // find the last name just BEFORE the substring and then start looping
     Set ln = $order(^PersonI("Name", substring), -1)
@@ -363,7 +380,8 @@ Class ObjectScript.Examples {
   }
 
   /// loop through last names that MATCH substring
-  ClassMethod FocusedLoopStartEnd() {
+  ClassMethod FocusedLoopStartEnd()
+  {
     Read "Search for: ", substring
     // find the last name just BEFORE the substring and then start looping
     Set ln = $order(^PersonI("Name", substring), -1)
@@ -376,7 +394,8 @@ Class ObjectScript.Examples {
   }
 
   /// examples of conversion methods
-  ClassMethod Conversions() {
+  ClassMethod Conversions()
+  {
     Write !, "abcde becomes: ", $translate("abcde", "ad", "yz") // translate a->y, and d->z
     Write !, "abcde becomes: ", $translate("abcde", "ad", "zz") // translate a->z, and d->z
     Write !, "abcde becomes: ", $translate("abcde", "ad", "z") // translate a->z, and d->nothing

@@ -1,5 +1,7 @@
-Class ObjectScript.SQLFormatterStress {
-  ClassMethod QueryPeople(minAge As %Integer = 18) As %Status {
+Class ObjectScript.SQLFormatterStress
+{
+  ClassMethod QueryPeople(minAge As %Integer = 18) As %Status
+  {
     #dim name As %String
     #dim age As %Integer
     &sql(

@@ -228,27 +228,81 @@ function printVerbatimBody(openBrace, closeBrace, options) {
   ]);
 }
 
-// Header of a class member (`Query Name(args) As Type [ Kw ]`), with the
-// keywords in square brackets in the same style as methods.
+// Separator between a declaration header and its opening brace: a space or,
+// with `objectScriptBraceStyle: "next-line"`, a line break.
+function braceSeparator(options) {
+  return options.objectScriptBraceStyle === "next-line" ? hardline : " ";
+}
+
+// Header of a class member (`Query Name(args) As Type [ Kw ]`) or method,
+// up to (excluding) the child at `endIndex`.
 function printMemberHeader(node, parts, endIndex) {
   const output = [];
-  let inKeywords = false;
   for (let i = 0; i < endIndex; i++) {
-    const type = node.children[i].type;
-    if (type === "[") {
-      output.push(" [");
-      inKeywords = true;
-    } else if (type === "]") {
-      output.push("]");
-      inKeywords = false;
-    } else if (inKeywords) {
-      output.push(type === "," ? ", " : parts[i]);
-    } else {
-      if (i > 0 && type !== "arguments") output.push(" ");
-      output.push(parts[i]);
-    }
+    if (i > 0 && node.children[i].type !== "arguments") output.push(" ");
+    output.push(parts[i]);
   }
   return group(concat(output));
+}
+
+// `[Kw1, Kw2]`: the keywords of a member in square brackets. Each keyword is
+// copied as written.
+function printKeywordList(node, parts) {
+  const content = [];
+  node.children.forEach((child, index) => {
+    if (!["[", "]", ","].includes(child.type)) content.push(parts[index]);
+  });
+  return concat(["[", join(", ", content), "]"]);
+}
+
+// Method with a body between braces. Shared by `method_definition` and by
+// `clientmethod`, whose header is flattened in the node itself.
+function printMethodLike(node, parts, options) {
+  const openBraceIdx = node.children.findIndex((c) => c.type === "{");
+  const closeBraceIdx = node.children.findLastIndex((c) => c.type === "}");
+
+  // Rare: a method without a body (e.g. abstract or odd legacy declarations).
+  if (openBraceIdx === -1 || closeBraceIdx === -1) {
+    return printMemberHeader(node, parts, node.children.length);
+  }
+
+  const head = printMemberHeader(node, parts, openBraceIdx);
+  // All the nodes between the braces (comments, body_content, ...), printed
+  // in their original order, keeping blank lines.
+  const childrenInside = node.children.slice(openBraceIdx + 1, closeBraceIdx);
+  const partsInside = parts.slice(openBraceIdx + 1, closeBraceIdx);
+
+  if (childrenInside.some((child) => child.type.endsWith("_body_content"))) {
+    return concat([
+      head,
+      braceSeparator(options),
+      printVerbatimBody(
+        node.children[openBraceIdx],
+        node.children[closeBraceIdx],
+        options,
+      ),
+    ]);
+  }
+
+  if (childrenInside.length === 0) {
+    return concat([head, braceSeparator(options), "{", hardline, "}"]);
+  }
+
+  const bodyDoc = printStatementsWithGaps(
+    childrenInside,
+    partsInside,
+    options.originalText,
+  );
+  return group(
+    concat([
+      head,
+      braceSeparator(options),
+      "{",
+      indent(concat([hardline, bodyDoc])),
+      hardline,
+      "}",
+    ]),
+  );
 }
 
 // Lines after the first keep their indentation relative to the line where
@@ -1038,7 +1092,9 @@ function printObjectScript(path, options, print) {
         if (child.type === "class_body") bodyDoc = parts[index];
         else headerParts.push(parts[index]);
       });
-      return group(concat([join(" ", headerParts), " ", bodyDoc || ""]));
+      return group(
+        concat([join(" ", headerParts), braceSeparator(options), bodyDoc || ""]),
+      );
     }
     case "class_extends": {
       const exArgs = [];
@@ -1101,7 +1157,7 @@ function printObjectScript(path, options, print) {
       if (isOpaque) {
         return concat([
           header,
-          " ",
+          braceSeparator(options),
           printVerbatimBody(
             node.children[openBraceIdx],
             node.children[closeBraceIdx],
@@ -1112,7 +1168,8 @@ function printObjectScript(path, options, print) {
       const bodyParts = parts.slice(openBraceIdx + 1, closeBraceIdx);
       return concat([
         header,
-        " {",
+        braceSeparator(options),
+        "{",
         printBlock(bodyNodes, bodyParts, options.originalText),
         hardline,
         "}",
@@ -1136,8 +1193,12 @@ function printObjectScript(path, options, print) {
         const part = parts[i];
         if (i > 0) {
           const prev = node.children[i - 1];
-          // No space before ; or ,
-          if (child.type !== ";" && child.type !== ",") {
+          // No space before ; , ) or the arguments of a property, nor
+          // after an opening parenthesis (`Index I On (A, B)`).
+          if (
+            ![";", ",", ")", "arguments"].includes(child.type) &&
+            prev.type !== "("
+          ) {
             // Space between words, including after a keyword_
             // (e.g. "Parameter"), and around "=".
             output.push(" ");
@@ -1148,77 +1209,9 @@ function printObjectScript(path, options, print) {
       return group(concat(output));
     }
 
-    case "method_definition": {
-      const headParts = [];
-      const openBraceIdx = node.children.findIndex((c) => c.type === "{");
-      const closeBraceIdx = node.children.findIndex((c) => c.type === "}");
-
-      // Header, up to the opening brace.
-      for (let i = 0; i < parts.length; i++) {
-        if (openBraceIdx !== -1 && i >= openBraceIdx) break;
-
-        // Space before return_type or keywords unless it is the first item.
-        if (i > 0) {
-          const t = node.children[i].type;
-          const previousType = node.children[i - 1].type;
-          if (
-            ["return_type", "method_keywords", "class_keywords", "["].includes(
-              t,
-            ) ||
-            previousType === ","
-          ) {
-            headParts.push(" ");
-          }
-        }
-        headParts.push(parts[i]);
-      }
-
-      // Method body.
-      let bodyDoc = "";
-      if (openBraceIdx !== -1 && closeBraceIdx !== -1) {
-        // All the nodes between the braces (comments, body_content, ...),
-        // printed in their original order, keeping blank lines.
-        const childrenInside = node.children.slice(
-          openBraceIdx + 1,
-          closeBraceIdx,
-        );
-        const partsInside = parts.slice(openBraceIdx + 1, closeBraceIdx);
-
-        if (
-          childrenInside.some((child) => child.type.endsWith("_body_content"))
-        ) {
-          return concat([
-            group(concat(headParts)),
-            " ",
-            printVerbatimBody(
-              node.children[openBraceIdx],
-              node.children[closeBraceIdx],
-              options,
-            ),
-          ]);
-        }
-
-        bodyDoc = printStatementsWithGaps(
-          childrenInside,
-          partsInside,
-          options.originalText,
-        );
-      } else if (openBraceIdx === -1) {
-        // Rare: a method without a body (e.g. abstract or odd legacy declarations).
-        return group(concat(headParts));
-      }
-
-      return group(
-        concat([
-          group(concat(headParts)),
-          " ",
-          "{",
-          indent(concat([hardline, bodyDoc])),
-          hardline,
-          "}",
-        ]),
-      );
-    }
+    case "method_definition":
+    case "clientmethod":
+      return printMethodLike(node, parts, options);
 
     case "do_parameter":
       return concat(parts);
@@ -1336,6 +1329,7 @@ function printObjectScript(path, options, print) {
     case "byref_arg":
       return concat(parts);
     case "method_args":
+    case "macro_func_args":
       return printMethodArgs(path, parts, node, options);
     case "arguments":
       return printArgumentsList(parts, node);
@@ -1386,8 +1380,17 @@ function printObjectScript(path, options, print) {
       // The node type is the character itself (e.g. "=").
       return node.type;
 
-    case "class_keywords":
     case "method_keywords":
+    case "external_method_keywords":
+    case "expression_method_keywords":
+    case "call_method_keywords":
+    case "xdata_keywords":
+    case "query_keywords":
+    case "trigger_keywords":
+    case "external_trigger_keywords":
+      return printKeywordList(node, parts);
+
+    case "class_keywords":
     case "property_keywords":
     case "parameter_keywords": {
       const content = [];

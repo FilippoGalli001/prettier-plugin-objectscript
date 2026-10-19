@@ -1,7 +1,9 @@
 /// Right triangle class, with examples of ObjectScript features
-Class ObjectScript.RightTriangle {
+Class ObjectScript.RightTriangle
+{
   /// Compute area and hypotenuse of a right triangle
-  ClassMethod Main() {
+  ClassMethod Main()
+  {
     Write !, "Compute the area and hypotenuse of a right triangle", !,
       "given the lengths of its two sides."
     Read !!, "First, choose a unit of measurement: ", !, "1) inches", !,
@@ -34,7 +36,8 @@ Class ObjectScript.RightTriangle {
   }
 
   /// Is num negative?
-  ClassMethod IsNegative(num As %Numeric) {
+  ClassMethod IsNegative(num As %Numeric)
+  {
     If (num'>0) {
       Write "  Enter a positive number."
       Return 1 // Return true
@@ -45,11 +48,8 @@ Class ObjectScript.RightTriangle {
   }
 
   /// Compute and display area and hypotenuse
-  ClassMethod Compute(
-    units As %String,
-    A As %Numeric,
-    B As %Numeric
-  ) [Private] {
+  ClassMethod Compute(units As %String, A As %Numeric, B As %Numeric) [Private]
+  {
     Set area = (A*B)/2,
       area = $Justify(area, 0, 2),
       // Round hypot to 2 places

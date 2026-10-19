@@ -1,6 +1,8 @@
-Class ObjectScript.Lookup1 {
+Class ObjectScript.Lookup1
+{
   /// main loop section, dispatch to different methods based on user input
-  ClassMethod Main() {
+  ClassMethod Main()
+  {
     While ..GetInput(.type, .search) {
       If (type="help") {
         Do ..Help()
@@ -14,7 +16,8 @@ Class ObjectScript.Lookup1 {
   ClassMethod GetInput(
     Output type As %String,
     Output search As %String
-  ) As %Boolean {
+  ) As %Boolean
+  {
     Read !, "Lookup: ", lookup
     Return:(lookup="") 0 // user entered nothing so return FALSE
     If (lookup="?") {
@@ -28,12 +31,14 @@ Class ObjectScript.Lookup1 {
   }
 
   /// display lookup options
-  ClassMethod Help() {
+  ClassMethod Help()
+  {
     Write !, "You can enter:", !?10, "* date of birth", !
   }
 
   /// exact date of birth lookup
-  ClassMethod DOB(intdob As %Date) {
+  ClassMethod DOB(intdob As %Date)
+  {
     // is the date of birth in the index?
     If '$data(^PersonI("DOB", intdob) ) {
       Write "...no matches"
@@ -53,7 +58,8 @@ Class ObjectScript.Lookup1 {
   }
 
   /// given an ID, retrieve data and write it on a line
-  ClassMethod DisplayLine(id As %Integer) {
+  ClassMethod DisplayLine(id As %Integer)
+  {
     Set $listbuild(name, phone, intdob) = ^PersonD(id)
     /* the line above is equivalent to
     set answers = ^PersonD(id),

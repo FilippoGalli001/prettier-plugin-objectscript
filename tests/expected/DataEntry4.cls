@@ -1,6 +1,8 @@
-Class ObjectScript.DataEntry4 {
+Class ObjectScript.DataEntry4
+{
   /// Main loop section
-  ClassMethod Main() {
+  ClassMethod Main()
+  {
     While ..Prompt(.answers) {
       Do ..Display(answers)
       Do ..Store(answers)
@@ -8,7 +10,8 @@ Class ObjectScript.DataEntry4 {
   }
 
   /// prompt
-  ClassMethod Prompt(ByRef answers As %String) As %Boolean {
+  ClassMethod Prompt(ByRef answers As %String) As %Boolean
+  {
     Do {
       Read !, "Name: ", name
       Return:(name="") 0 // user entered nothing so return FALSE, exit loop AND method
@@ -28,7 +31,8 @@ Class ObjectScript.DataEntry4 {
 
   /// use pattern match to validate a name in "Last,First" format.
   /// write error message if invalid
-  ClassMethod ValidName(name As %String) As %Boolean {
+  ClassMethod ValidName(name As %String) As %Boolean
+  {
     If (name?1U.L1","1U.L) {
       Return 1
     } Else {
@@ -40,7 +44,8 @@ Class ObjectScript.DataEntry4 {
   /// use RegEx ($match) to validate a phone in "###-####" or "###-###-####" format.
   /// returns the converted phone by reference
   /// write error message if invalid
-  ClassMethod ValidPhone(ByRef phone As %String) As %Boolean {
+  ClassMethod ValidPhone(ByRef phone As %String) As %Boolean
+  {
     If $match(phone, "(\d{3}-)?\d{3}-\d{4}") {
       Set:($match(phone,
         "\d{3}-\d{4}")) phone = "617-"_phone // add default area code
@@ -59,7 +64,8 @@ Class ObjectScript.DataEntry4 {
   /// validate a date of birth using $zdateh and $horolog
   /// returns the internal form of the date of birth by reference
   /// write error message if invalid
-  ClassMethod ValidDOB(date As %String, Output convdate As %Date) As %Boolean {
+  ClassMethod ValidDOB(date As %String, Output convdate As %Date) As %Boolean
+  {
     Set convdate = $zdateh(date, 5,,,,,,, -1)
     If (convdate=-1) {
       Write !, "Must be a valid past date"
@@ -73,7 +79,8 @@ Class ObjectScript.DataEntry4 {
   }
 
   /// display the data
-  ClassMethod Display(answers As %String) {
+  ClassMethod Display(answers As %String)
+  {
     Set $listbuild(name, phone, intdob) = answers
     /* the line above is equivalent to
     set name = $list(answers, 1),
@@ -87,7 +94,8 @@ Class ObjectScript.DataEntry4 {
   }
 
   /// store the data
-  ClassMethod Store(answers As %String) {
+  ClassMethod Store(answers As %String)
+  {
     Read !, "Store? (y/n): ", yn // ask if user wants to store
     // only go on if user says yes
     If ((yn'="y")&&(yn'="Y")) {
@@ -120,7 +128,8 @@ Class ObjectScript.DataEntry4 {
   }
 
   /// load some test records
-  ClassMethod Load() {
+  ClassMethod Load()
+  {
     Kill ^PersonD, ^PersonI
     Do ##class(ObjectScript.Person).%KillExtent()
     Set answers = $listbuild("Jones,Cleon", "111-111-1111", 37105)

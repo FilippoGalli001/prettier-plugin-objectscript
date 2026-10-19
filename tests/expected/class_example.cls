@@ -1,4 +1,5 @@
-Class Demo.Orders.SignedMessage {
+Class Demo.Orders.SignedMessage
+{
   /// Name of the SSL configuration that holds the CA certificate.
   /// Only used to resolve the full path of the CA file.
   Parameter SSLConfig = "demo-orders-ca";
@@ -9,7 +10,8 @@ Class Demo.Orders.SignedMessage {
   /// w ##class(Demo.Orders.SignedMessage).Validate("Signed eyJ0eXAiOiJNU0cifQ.e30.c2ln")
   ClassMethod Validate(
     rawHeader As %String = {%request.GetCgiEnv("HTTP_X_SIGNED_MESSAGE", "")}
-  ) As %String {
+  ) As %String
+  {
     Set sc = $$$OK
     Try {
       If rawHeader'["Signed" {
@@ -123,7 +125,8 @@ Class Demo.Orders.SignedMessage {
 
   /// Returns the full path of the CA file
   /// referenced by the SSL configuration of this class.
-  ClassMethod GetFileCA(Output sc As %Status) {
+  ClassMethod GetFileCA(Output sc As %Status)
+  {
     New $namespace
     ZNspace "%SYS"
     Set sc = $$$OK

@@ -1,5 +1,6 @@
 /// Persistent class for Persons
-Class ObjectScript.Person Extends %Persistent {
+Class ObjectScript.Person Extends %Persistent
+{
   Property Name As %String(PATTERN = "1U.L1"",""1U.L");
 
   Property LastName As %String [
@@ -19,7 +20,7 @@ Class ObjectScript.Person Extends %Persistent {
   Property DOB As %Date(MAXVAL = "$piece($horolog, "","", 1)");
 
   /// Index for LastName,FirstName
-  Index NameIndex On ( LastName, FirstName );
+  Index NameIndex On (LastName, FirstName);
 
   /// Uniqueness index for property Phone
   Index PhoneIndex On Phone [Unique];
@@ -30,7 +31,8 @@ Class ObjectScript.Person Extends %Persistent {
   /// Bitmap index of ID numbers
   Index IDIndex [Extent, Type = bitmap];
 
-  Storage Default {
+  Storage Default
+  {
 <Data name="PersonDefaultData">
 <Value name="1">
 <Value>%%CLASSNAME</Value>

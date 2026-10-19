@@ -60,6 +60,24 @@ const options = {
     default: true,
     description: "If true, expands abbreviations (e.g., 's' becomes 'Set').",
   },
+  // Option for the position of the opening brace of declarations
+  objectScriptBraceStyle: {
+    type: "choice",
+    category: "ObjectScript",
+    default: "next-line",
+    choices: [
+      {
+        value: "next-line",
+        description: "Opening brace on its own line (InterSystems style)",
+      },
+      {
+        value: "same-line",
+        description: "Opening brace at the end of the declaration line",
+      },
+    ],
+    description:
+      "Position of the opening brace of classes, methods, XData, Storage, Query and Trigger.",
+  },
   objectScriptStrictParsing: {
     type: "boolean",
     category: "ObjectScript",

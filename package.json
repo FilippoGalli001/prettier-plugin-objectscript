@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "tree-sitter": "0.25.1",
-    "tree-sitter-objectscript": "https://github.com/intersystems/tree-sitter-objectscript/archive/6ee63cf01590446f4e64b6c048739bfe7d23408b.tar.gz"
+    "tree-sitter-objectscript": "https://github.com/intersystems/tree-sitter-objectscript/archive/a1a5d7ae8752cbcf6a4c76e8dd820ca0b0181b27.tar.gz"
   },
   "devDependencies": {
     "prettier": "3.9.6"

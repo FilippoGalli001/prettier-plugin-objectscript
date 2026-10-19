@@ -1,5 +1,7 @@
-Class ObjectScript.DataEntry1 {
-  ClassMethod Main() {
+Class ObjectScript.DataEntry1
+{
+  ClassMethod Main()
+  {
     Read !, "Name: ", name
     If name="" {
       Quit

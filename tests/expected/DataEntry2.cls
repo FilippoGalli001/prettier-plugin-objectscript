@@ -1,13 +1,16 @@
-Class ObjectScript.DataEntry2 {
+Class ObjectScript.DataEntry2
+{
   /// Main loop section
-  ClassMethod Main() {
+  ClassMethod Main()
+  {
     While ..Prompt() {
       Do ..Display()
     }
   }
 
   /// prompt
-  ClassMethod Prompt() As %Boolean [PublicList = ( name , phone , dob )] {
+  ClassMethod Prompt() As %Boolean [PublicList = ( name , phone , dob )]
+  {
     Read !, "Name: ", name
     Return:(name="") 0 // user entered nothing so return FALSE and exit method
     Read !, "Phone: ", phone
@@ -16,7 +19,8 @@ Class ObjectScript.DataEntry2 {
   }
 
   /// display the data
-  ClassMethod Display() [PublicList = ( name , phone , dob )] {
+  ClassMethod Display() [PublicList = ( name , phone , dob )]
+  {
     Write !!, "========================================"
     Write !, "Name:", ?20, name
     Write !, "Phone:", ?20, phone

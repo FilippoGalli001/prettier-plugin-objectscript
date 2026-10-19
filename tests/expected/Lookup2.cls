@@ -1,6 +1,8 @@
-Class ObjectScript.Lookup2 {
+Class ObjectScript.Lookup2
+{
   /// main loop section, dispatch to different methods based on user input
-  ClassMethod Main() {
+  ClassMethod Main()
+  {
     Do ..CurrentCount()
     While ..GetInput(.type, .search) {
       If (type="help") {
@@ -22,7 +24,8 @@ Class ObjectScript.Lookup2 {
   ClassMethod GetInput(
     Output type As %String,
     Output search As %String
-  ) As %Boolean {
+  ) As %Boolean
+  {
     Read !, "Lookup: ", lookup
     Return:(lookup="") 0 // user entered nothing so return FALSE
     If (lookup="?") {
@@ -48,7 +51,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// display lookup options
-  ClassMethod Help() {
+  ClassMethod Help()
+  {
     Write !, "You can enter:", !?10, "* date of birth", !?10,
       "* full phone number or area code only ""617-""", !?10,
       "* full name: Smith,John", !?10, "* last name: Smith", !?10,
@@ -56,7 +60,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// exact date of birth lookup
-  ClassMethod DOB(intdob As %Date, Output id As %Integer) {
+  ClassMethod DOB(intdob As %Date, Output id As %Integer)
+  {
     Set id = ""
     // is the date of birth in the index?
     If '$data(^PersonI("DOB", intdob) ) {
@@ -78,7 +83,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// lookup phone or area code
-  ClassMethod Phone(phone As %String, Output id As %Integer) {
+  ClassMethod Phone(phone As %String, Output id As %Integer)
+  {
     Set id = ""
     Set count = 0
     // handle exact match first
@@ -113,7 +119,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// lookup names in these forms: Smith; Smith,John; Smith,J; Sm,John; Sm,J
-  ClassMethod Name(name As %String, Output id As %Integer) {
+  ClassMethod Name(name As %String, Output id As %Integer)
+  {
     Set id = ""
     Set count = 0
     Set last = $piece(name, ",", 1), first = $piece(name, ",", 2)
@@ -156,7 +163,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// given an ID, retrieve data and write it on a line
-  ClassMethod DisplayLine(id As %Integer) {
+  ClassMethod DisplayLine(id As %Integer)
+  {
     Set $listbuild(name, phone, intdob) = ^PersonD(id)
     /* the line above is equivalent to
     set answers = ^PersonD(id),
@@ -167,7 +175,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// count the "1" bits from the chunks of the Bitmap-ID index
-  ClassMethod CurrentCount() {
+  ClassMethod CurrentCount()
+  {
     Set records = 0, chunk = ""
     For {
       // use the 3-argument $order to get the next chunk and the bits stored there
@@ -180,7 +189,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// user makes a choice from the matches array, return the corresponding ID or ""
-  ClassMethod Select(ByRef matches As %Integer, Output id As %Integer) {
+  ClassMethod Select(ByRef matches As %Integer, Output id As %Integer)
+  {
     Set id = ""
     For {
       Read !!, "Choose by number: ", choice
@@ -192,7 +202,8 @@ Class ObjectScript.Lookup2 {
   }
 
   /// display chosen record
-  ClassMethod TakeAction(id As %Integer) {
+  ClassMethod TakeAction(id As %Integer)
+  {
     Set rec = ^PersonD(id)
     Do ##class(ObjectScript.DataEntry4).Display(rec)
   }
