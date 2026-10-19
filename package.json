@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-objectscript",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A Prettier 3 plugin for InterSystems ObjectScript class files.",
   "keywords": [
     "prettier",
@@ -21,6 +21,7 @@
     "format:example": "prettier --plugin ./index.js example.cls",
     "inspect:ast": "node scripts/inspect-ast.js",
     "test": "node --test tests/plugin.test.js",
+    "test:iris": "node scripts/iris-check.js",
     "test:update": "node scripts/update-fixtures.js"
   },
   "engines": {
@@ -29,6 +30,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git"
+  },
+  "author": "Filippo Galli",
+  "homepage": "https://github.com/FilippoGalli001/prettier-plugin-objectscript#readme",
+  "bugs": {
+    "url": "https://github.com/FilippoGalli001/prettier-plugin-objectscript/issues"
   },
   "license": "MIT",
   "peerDependencies": {

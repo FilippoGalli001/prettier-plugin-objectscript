@@ -2,6 +2,56 @@
 
 An opinionated [Prettier 3](https://prettier.io/) plugin for InterSystems ObjectScript class files (`.cls`). Parsing is provided by the UDL grammar from [`tree-sitter-objectscript`](https://github.com/intersystems/tree-sitter-objectscript).
 
+## Example
+
+Input (`example.cls`):
+
+```text
+Class Demo.Greeter Extends %RegisteredObject {
+Property Name As %String [Required];
+
+/// Returns a greeting for the given name.
+ClassMethod Greet(name As %String="world",times As %Integer=1) As %String [ Private ]
+{
+ s result=""
+ f i=1:1:times {
+ s result=result_"Hello, "_name_"! "
+ }
+ q:name="" "nobody"
+ i times>1 { w "Greeted ",times," times",! }
+ q result
+}
+}
+```
+
+Output of `npx prettier --plugin ./index.js example.cls`:
+
+```objectscript
+Class Demo.Greeter Extends %RegisteredObject
+{
+  Property Name As %String [Required];
+
+  /// Returns a greeting for the given name.
+  ClassMethod Greet(
+    name As %String = "world",
+    times As %Integer = 1
+  ) As %String [Private]
+  {
+    Set result = ""
+    For i = 1:1:times {
+      Set result = result_"Hello, "_name_"! "
+    }
+    Quit:name="" "nobody"
+    If times > 1 {
+      Write "Greeted ", times, " times", !
+    }
+    Quit result
+  }
+}
+```
+
+Abbreviated commands are expanded, braces and indentation are normalized, and binary operators get spaces. Concatenation (`_`) and postconditionals (`Quit:name=""`) stay compact because a space would change their meaning.
+
 ## Features
 
 - canonical command casing and optional abbreviation expansion (`s` → `Set`);
@@ -117,18 +167,18 @@ The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is p
 
 ### Options
 
-| Option                       | Default | Description                                                 |
-| ---------------------------- | ------- | ----------------------------------------------------------- |
-| `objectScriptCommandCase`    | `title` | `title`, `uppercase` or `lowercase` command casing.         |
-| `objectScriptExpandCommands` | `true`  | Expands command abbreviations.                              |
-| `objectScriptBraceStyle`     | `next-line` | `next-line` or `same-line`: position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. |
-| `objectScriptBreakLongExpressions` | `false` | Breaks parenthesized expressions longer than `printWidth` after their binary operators. Experimental: see Limitations. |
-| `objectScriptStrictParsing`  | `false` | Throws when Tree-sitter reports `ERROR` or missing nodes.   |
-| `objectScriptDebug`          | `false` | Enables AST diagnostics on `stderr`.                        |
-| `objectScriptDebugNodes`     | `""`    | Comma-separated node types to trace. Empty means all types. |
-| `objectScriptDebugRange`     | `""`    | Optional source offset range (`start:end`).                 |
-| `objectScriptDebugFile`      | `""`    | Only traces paths containing this value.                    |
-| `objectScriptDebugMax`       | `200`   | Maximum debug records per formatting run.                   |
+| Option                             | Default     | Description                                                                                                               |
+| ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `objectScriptCommandCase`          | `title`     | `title`, `uppercase` or `lowercase` command casing.                                                                       |
+| `objectScriptExpandCommands`       | `true`      | Expands command abbreviations.                                                                                            |
+| `objectScriptBraceStyle`           | `next-line` | `next-line` or `same-line`: position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. |
+| `objectScriptBreakLongExpressions` | `false`     | Breaks parenthesized expressions longer than `printWidth` after their binary operators. Experimental: see Limitations.    |
+| `objectScriptStrictParsing`        | `false`     | Throws when Tree-sitter reports `ERROR` or missing nodes.                                                                 |
+| `objectScriptDebug`                | `false`     | Enables AST diagnostics on `stderr`.                                                                                      |
+| `objectScriptDebugNodes`           | `""`        | Comma-separated node types to trace. Empty means all types.                                                               |
+| `objectScriptDebugRange`           | `""`        | Optional source offset range (`start:end`).                                                                               |
+| `objectScriptDebugFile`            | `""`        | Only traces paths containing this value.                                                                                  |
+| `objectScriptDebugMax`             | `200`       | Maximum debug records per formatting run.                                                                                 |
 
 Strict parsing is opt-in because the upstream grammar can still report an error for some valid legacy ObjectScript constructs (the pinned version no longer does for `ClientMethod`, macros used as statements, `Property` arguments or `Index ... On` with `ELEMENTS`/`KEYS`). The test suite separately guarantees that every generated fixture parses without errors.
 
@@ -215,6 +265,15 @@ For every fixture the suite verifies:
 2. formatting is idempotent;
 3. the generated output has no Tree-sitter diagnostics;
 4. command options, strict parsing and selective debug work as expected.
+
+### Checking the behavior against IRIS
+
+`npm run test:iris` starts a throwaway [InterSystems IRIS Community](https://hub.docker.com/r/intersystems/iris-community) container (Docker is required, the first run downloads about 3.5 GB) and checks that formatting does not change what the code does:
+
+1. the fixtures in `tests/samples` are compiled as written and after formatting with `next-line`, `same-line` and `objectScriptBreakLongExpressions`; the compilation messages must be the same (some fixtures use classes that do not exist in a clean IRIS, so only differences count);
+2. `tests/iris/Ops.cls` is executable: `Check.Ops.Run()` must print exactly the same output before and after formatting.
+
+Set `IRIS_IMAGE` to use another image. Pass `-- --keep` to keep the container for inspection.
 
 After an intentional formatter change, regenerate expected files only after reviewing the output:
 

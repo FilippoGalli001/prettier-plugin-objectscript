@@ -2,12 +2,13 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.0.0] - 2026-10-19
 
 ### Added
 
 - `objectScriptBraceStyle` option (`next-line` or `same-line`) for the position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. Control-flow blocks (`If`, `For`, `Try`, ...) are not affected.
 - `objectScriptBreakLongExpressions` option (default `false`) to break long parenthesized expressions after their binary operators.
+- `npm run test:iris`: compiles and runs the fixtures against an IRIS Community container, as written and formatted, and fails if the behavior changes.
 - `ClientMethod` support.
 - `Operators.cls` fixture covering every binary operator and the contexts where spacing must be preserved.
 - `GrammarUpdate.cls` fixture with constructs that the previous grammar reported as syntax errors.
