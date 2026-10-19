@@ -78,6 +78,13 @@ const options = {
     description:
       "Position of the opening brace of classes, methods, XData, Storage, Query and Trigger.",
   },
+  objectScriptBreakLongExpressions: {
+    type: "boolean",
+    category: "ObjectScript",
+    default: false,
+    description:
+      "Break parenthesized expressions that exceed printWidth after their binary operators.",
+  },
   objectScriptStrictParsing: {
     type: "boolean",
     category: "ObjectScript",

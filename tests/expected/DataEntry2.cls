@@ -12,7 +12,7 @@ Class ObjectScript.DataEntry2
   ClassMethod Prompt() As %Boolean [PublicList = ( name , phone , dob )]
   {
     Read !, "Name: ", name
-    Return:(name="") 0 // user entered nothing so return FALSE and exit method
+    Return:(name = "") 0 // user entered nothing so return FALSE and exit method
     Read !, "Phone: ", phone
     Read !, "DOB: ", dob
     Return 1 // return true

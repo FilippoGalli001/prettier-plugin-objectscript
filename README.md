@@ -122,6 +122,7 @@ The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is p
 | `objectScriptCommandCase`    | `title` | `title`, `uppercase` or `lowercase` command casing.         |
 | `objectScriptExpandCommands` | `true`  | Expands command abbreviations.                              |
 | `objectScriptBraceStyle`     | `next-line` | `next-line` or `same-line`: position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. |
+| `objectScriptBreakLongExpressions` | `false` | Breaks parenthesized expressions longer than `printWidth` after their binary operators. Experimental: see Limitations. |
 | `objectScriptStrictParsing`  | `false` | Throws when Tree-sitter reports `ERROR` or missing nodes.   |
 | `objectScriptDebug`          | `false` | Enables AST diagnostics on `stderr`.                        |
 | `objectScriptDebugNodes`     | `""`    | Comma-separated node types to trace. Empty means all types. |
@@ -135,6 +136,9 @@ Strict parsing is opt-in because the upstream grammar can still report an error 
 
 - Only class definition files (`.cls`, UDL format) are supported. Routines (`.mac`, `.int`, `.inc`) are not.
 - Control-flow blocks (`If`, `For`, `Try`, ...) always keep the opening brace on the same line. `objectScriptBraceStyle` only affects class and member declarations: `next-line` (default) follows the InterSystems documentation, `same-line` gives `ClassMethod Run() {`.
+- Binary operators are surrounded by spaces, and the arguments of function calls and subscripts get a space after each comma (`^Data(x + 1, "a")`). The exceptions are the concatenation `_`, pattern matches and the arguments of macro calls (`$$$ERROR($$$GeneralError,"x")`), which are kept as written because macros are expanded as text.
+- Postconditionals (`Quit:x=1 ...`), `For` ranges and timeouts are printed without added whitespace, because a space would end them. A postconditional that is entirely parenthesized, `Quit:(x = 1)`, is spaced like any other expression.
+- Subscripts are never broken across lines. Long lines are only wrapped at the commas of function arguments, unless `objectScriptBreakLongExpressions` is enabled, which also breaks parenthesized expressions after their operators. The InterSystems documentation allows line breaks within command arguments and parentheses but does not state the rule for operators, so the option is disabled by default: check the result with the compiler before enabling it.
 - The content of `XData`, `Storage` and `Query` blocks, and of triggers or methods written in a language other than ObjectScript (SQL, Python, ...), is preserved verbatim.
 - Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them.
 

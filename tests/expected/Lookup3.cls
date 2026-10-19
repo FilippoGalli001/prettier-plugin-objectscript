@@ -27,7 +27,7 @@ Class ObjectScript.Lookup3
   ) As %Boolean
   {
     Read !, "Lookup: ", lookup
-    Return:(lookup="") 0 // user entered nothing so return FALSE
+    Return:(lookup = "") 0 // user entered nothing so return FALSE
     If (lookup = "?") {
       Set type = "help", search = ""
     }
@@ -64,7 +64,7 @@ Class ObjectScript.Lookup3
   {
     Set id = ""
     // is the date of birth in the index?
-    If '$data(^PersonI("DOB", intdob) ) {
+    If '$data(^PersonI("DOB", intdob)) {
       Write "...no matches"
       Quit
     }
@@ -74,7 +74,7 @@ Class ObjectScript.Lookup3
     Set id = ""
     For count = 1:1 {
       Set id = $order(^PersonI("DOB", intdob, id))
-      Quit:(id="")
+      Quit:(id = "")
       Set matches(count) = id // keep track of matches
       Write !, count, ") "
       Do ..DisplayLine(id)
@@ -102,7 +102,7 @@ Class ObjectScript.Lookup3
       Set ph = $order(^PersonI("Phone", phone), 1, id)
       // loop through matching phones, and number them
       While ($extract(ph, 1, $length(phone)) = phone) {
-        Write:(count=0) "...finding area code matches"
+        Write:(count = 0) "...finding area code matches"
         Set count = count + 1
         Set matches(count) = id // keep track of matches
         Write !, count, ") "
@@ -130,7 +130,7 @@ Class ObjectScript.Lookup3
     For {
       Set ln = $order(^PersonI("Name", ln))
       // quit as soon as last name doesn't match original
-      Quit:($extract(ln, 1, $length(last))'=last)
+      Quit:($extract(ln, 1, $length(last)) '= last)
       // first may be "". Otherwise, it may be an exact match, so find preceding first name
       If (first = "") {
         Set fn = ""
@@ -141,13 +141,13 @@ Class ObjectScript.Lookup3
       For {
         Set fn = $order(^PersonI("Name", ln, fn))
         // quit as soon as first name doesn't match original, or is ""
-        Quit:(($extract(fn, 1, $length(first))'=first)||(fn=""))
+        Quit:(($extract(fn, 1, $length(first)) '= first) || (fn = ""))
         Set id = ""
         // loop through all IDs
         For {
           Set id = $order(^PersonI("Name", ln, fn, id))
-          Quit:(id="")
-          Write:(count=0) "...finding name matches"
+          Quit:(id = "")
+          Write:(count = 0) "...finding name matches"
           Set count = count + 1
           Set matches(count) = id // keep track of matches
           Write !, count, ") "
@@ -181,7 +181,7 @@ Class ObjectScript.Lookup3
     For {
       // use the 3-argument $order to get the next chunk and the bits stored there
       Set chunk = $order(^PersonI("Bitmap-ID", chunk), 1, bits)
-      Quit:(chunk="")
+      Quit:(chunk = "")
       // add the "1" bits to the count
       Set records = records + $bitcount(bits, 1)
     }
@@ -194,9 +194,9 @@ Class ObjectScript.Lookup3
     Set id = ""
     For {
       Read !!, "Choose by number: ", choice
-      Quit:(choice="")
+      Quit:(choice = "")
       Set id = $get(matches(choice))
-      Quit:(id'="")  // stop looping if user makes a valid choice
+      Quit:(id '= "")  // stop looping if user makes a valid choice
       Write "...Invalid choice"
     }
   }

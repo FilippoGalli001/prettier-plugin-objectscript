@@ -24,7 +24,7 @@ Class ObjectScript.FormatterStress Extends %Persistent
       If verbose {
         Write !, "Name: ", payload.name, !
       } ElseIf payload.name = "" {
-        Set sc = $$$ERROR($$$GeneralError, "Missing name")
+        Set sc = $$$ERROR($$$GeneralError,"Missing name")
       } Else {
         Set payload.name = ..Transform(payload.name)
       }

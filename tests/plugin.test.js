@@ -444,3 +444,70 @@ test("keeps concatenation and pattern matches compact", async () => {
   assert.match(formatted, /Set t = "a"_s_"b"/);
   assert.match(formatted, /Set ok = \(s\?3N\)/);
 });
+
+test("formats the operands of subscripts, extrinsic functions and $Select", async () => {
+  const formatted = await format(
+    `Class Demo {
+Method X(x) {
+ Set a=^Data(x+1,"k")+x(i*2,j)+$Select(x>0:x+1,1:0)
+ Set b=$$Func^Rtn(x-1)+'(x<y)
+ Set $Piece(h,",",x+1)=y
+}
+}`,
+  );
+
+  assert.match(
+    formatted,
+    /Set a = \^Data\(x \+ 1, "k"\) \+ x\(i \* 2, j\) \+ \$Select\(x > 0:x \+ 1, 1:0\)\n/,
+  );
+  assert.match(formatted, /Set b = \$\$Func\^Rtn\(x - 1\) \+ '\(x < y\)\n/);
+  assert.match(formatted, /Set \$Piece\(h, ",", x \+ 1\) = y/);
+});
+
+test("keeps the arguments of macro calls as written", async () => {
+  const formatted = await format(
+    'Class Demo {\nMethod X(x) {\n Set sc=$$$ERROR($$$GeneralError,"x"_x+1)*2\n}\n}',
+  );
+
+  assert.match(formatted, /Set sc = \$\$\$ERROR\(\$\$\$GeneralError,"x"_x\+1\) \* 2/);
+});
+
+test("allows whitespace in a postconditional only when it is parenthesized", async () => {
+  const formatted = await format(
+    `Class Demo {
+Method X(a, b) {
+ Quit:(a=$Length(b,","))||(a>1) 1
+ Quit:($Length(b,",")>a) 2
+ Quit:$Length(b,",")>a 3
+}
+}`,
+  );
+
+  assert.match(formatted, /Quit:\(a=\$Length\(b,","\)\)\|\|\(a>1\) 1/);
+  assert.match(formatted, /Quit:\(\$Length\(b, ","\) > a\) 2/);
+  assert.match(formatted, /Quit:\$Length\(b,","\)>a 3/);
+});
+
+test("objectScriptBreakLongExpressions breaks only inside parentheses", async () => {
+  const input = `Class Demo {
+Method X() {
+ Set total=(firstOperandWithLongName+secondOperandWithLongName*thirdOperandWithLongName-fourthOperandWithLongName)
+ Set bare=firstOperandWithLongName+secondOperandWithLongName*thirdOperandWithLongName-fourthOperandWithLongName+fifthOperand
+}
+}`;
+  const options = { objectScriptBreakLongExpressions: true };
+  const plain = await format(input);
+  const wrapped = await format(input, options);
+
+  assert.ok(plain.split("\n").some((line) => line.length > 100), plain);
+  assert.match(
+    wrapped,
+    /Set total = \(firstOperandWithLongName \+\n\s+secondOperandWithLongName \*\n\s+thirdOperandWithLongName -\n\s+fourthOperandWithLongName\)/,
+  );
+  assert.match(wrapped, /Set bare = firstOperandWithLongName \+ secondOperandWithLongName/);
+  assert.deepEqual(
+    leaves(objectScriptParser.parse(wrapped)),
+    leaves(objectScriptParser.parse(plain)),
+  );
+  assert.equal(await format(wrapped, options), wrapped);
+});

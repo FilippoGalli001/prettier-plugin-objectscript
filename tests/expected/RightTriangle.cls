@@ -20,14 +20,14 @@ Class ObjectScript.RightTriangle
         :"units")
     Do {
       Read !!, "Length of side 1: ", side1
-      Quit:(side1="")  // Exit the do loop
+      Quit:(side1 = "")  // Exit the do loop
     } While ..IsNegative(side1)
-    Quit:(side1="")  // Exit the routine
+    Quit:(side1 = "")  // Exit the routine
     Do {
       Read !, "Length of side 2: ", side2
-      Quit:(side2="")  // Exit the do loop
+      Quit:(side2 = "")  // Exit the do loop
     } While ..IsNegative(side2)
-    Quit:(side2="")  // Exit the routine
+    Quit:(side2 = "")  // Exit the routine
     Do ..Compute(units, side1, side2)
     Write !!, "Current date: "
     Do ^%D

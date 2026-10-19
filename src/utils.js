@@ -20,6 +20,42 @@ const {
   },
 } = require("prettier");
 
+// Contexts where a space ends the argument. A postconditional (`Do:a=1 Foo`)
+// cannot contain spaces or line breaks unless it is entirely parenthesized
+// (`Do:(a = 1) Foo`), and the operands of a `For` range or a timeout are kept
+// compact for the same reason.
+const SPACE_SENSITIVE_TYPES = new Set(["for_parameter", "timeout"]);
+
+const SUBSCRIPT_OWNERS = new Set(["lvn", "gvn"]);
+
+function isFullyParenthesized(postConditional) {
+  const expression = postConditional.children.find(
+    (child) => child.type === "expression",
+  );
+  const children = expression?.children ?? [];
+  return (
+    children.length === 3 &&
+    children[0].type === "(" &&
+    children[2].type === ")"
+  );
+}
+
+/**
+ * Tells whether the node being printed is inside a postconditional, a `For`
+ * range or a timeout, where no whitespace may be added.
+ * @param {object} path - The AST path.
+ * @returns {boolean}
+ */
+function inSpaceSensitiveContext(path) {
+  for (let level = 0, ancestor; (ancestor = path.getParentNode(level)); level++) {
+    if (SPACE_SENSITIVE_TYPES.has(ancestor.type)) return true;
+    if (ancestor.type === "post_conditional" && !isFullyParenthesized(ancestor)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Tells whether the node ends with an argumentless command (e.g. `Quit`, `Do`).
  * Such a command needs two spaces before whatever follows it on the same
@@ -199,6 +235,7 @@ function printArgumentsList(parts, node) {
  */
 function printMethodArgs(path, parts, node, options) {
   const elements = [];
+  const compact = inSpaceSensitiveContext(path);
   let lastPos = node.startIndex;
 
   node.children.forEach((child, i) => {
@@ -216,13 +253,21 @@ function printMethodArgs(path, parts, node, options) {
 
     if (child.type === ",") {
       elements.push(",");
-      elements.push(line);
+      if (!compact) elements.push(line);
     } else {
       elements.push(parts[i]);
     }
   });
 
   if (elements.length === 0) return "()";
+  // Subscripts (`^Data(a, b)`) are never broken across lines.
+  if (compact || SUBSCRIPT_OWNERS.has(node.parent?.type)) {
+    return concat([
+      "(",
+      concat(elements.map((element) => (element === line ? " " : element))),
+      ")",
+    ]);
+  }
 
   return group(
     concat(["(", indent(concat([softline, concat(elements)])), softline, ")"]),
@@ -262,6 +307,7 @@ function printSmartType(parts, nodes) {
 }
 
 module.exports = {
+  inSpaceSensitiveContext,
   endsWithArgumentlessCommand,
   joinWithCommas,
   printCommandArgs,

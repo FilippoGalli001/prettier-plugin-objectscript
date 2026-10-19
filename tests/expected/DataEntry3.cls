@@ -13,7 +13,7 @@ Class ObjectScript.DataEntry3
   {
     Do {
       Read !, "Name: ", name
-      Return:(name="") 0 // user entered nothing so return FALSE, exit loop AND method
+      Return:(name = "") 0 // user entered nothing so return FALSE, exit loop AND method
     } While '..ValidName(name)
 
     Do {

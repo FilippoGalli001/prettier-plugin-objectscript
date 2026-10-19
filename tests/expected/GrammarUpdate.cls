@@ -31,7 +31,7 @@ Class ObjectScript.GrammarUpdate Extends %Persistent
 
   Method Check() [ZenMethod]
   {
-    Set sc = $$$ERROR($$$GeneralError, "Missing code")
+    Set sc = $$$ERROR($$$GeneralError,"Missing code")
     $$$ThrowOnError(sc)
     Do $$$LOGINFO("checked")
     Set path = $$$MAC.Path

@@ -21,6 +21,7 @@ const {
 } = require("prettier");
 
 const {
+  inSpaceSensitiveContext,
   endsWithArgumentlessCommand,
   printCommandArgs,
   printArgumentsList,
@@ -114,7 +115,6 @@ const COMMAND_ABBREVIATIONS = {
 
 const ATOMIC_TYPES = new Set([
   "intrinsic_function",
-  "unary_expression",
   "storage_body_content",
   "sql_statement",
   "class_name",
@@ -182,7 +182,7 @@ function rawNodeText(node, options) {
   return options.originalText.slice(node.startIndex, node.endIndex).trim();
 }
 
-function printSystemFunction(node, parts, options) {
+function printSystemFunction(path, node, parts, options) {
   if (node.children.length === 0) return rawNodeText(node, options);
 
   const prefix = options.originalText.slice(
@@ -190,10 +190,11 @@ function printSystemFunction(node, parts, options) {
     node.children[0].startIndex,
   );
   const output = [];
+  const compact = inSpaceSensitiveContext(path);
   node.children.forEach((child, index) => {
     if (child.type === ",") {
       output.push(",");
-      if (node.children[index + 1]?.type !== ",") output.push(line);
+      if (node.children[index + 1]?.type !== "," && !compact) output.push(line);
     } else {
       output.push(parts[index]);
     }
@@ -234,20 +235,28 @@ function braceSeparator(options) {
   return options.objectScriptBraceStyle === "next-line" ? hardline : " ";
 }
 
-// Contexts where a space ends the argument: `Do:a=1 Foo` is a postconditional
-// followed by an argument, `Do:a = 1 Foo` is not. The operands of a `For`
-// range are kept compact for the same reason.
-const SPACE_SENSITIVE_TYPES = new Set([
-  "post_conditional",
-  "for_parameter",
-  "timeout",
-]);
-
-function inSpaceSensitiveContext(path) {
-  for (let level = 0, ancestor; (ancestor = path.getParentNode(level)); level++) {
-    if (SPACE_SENSITIVE_TYPES.has(ancestor.type)) return true;
+// `a + b * c` is parsed as `a + (b * c)` nested to the right: the head of the
+// chain is the outermost expression.
+function chainHead(node) {
+  let head = node;
+  while (
+    head.parent?.type === "expression" &&
+    head.previousSibling?.type === "binary_operator"
+  ) {
+    head = head.parent;
   }
-  return false;
+  return head;
+}
+
+// A line break inside parentheses (function arguments, parenthesized
+// expressions) is plain whitespace for ObjectScript.
+function isInsideParentheses(head) {
+  const parent = head.parent;
+  return (
+    parent?.type === "method_arg" ||
+    parent?.type === "dollar_arg_pair" ||
+    (parent?.type === "expression" && head.previousSibling?.type === "(")
+  );
 }
 
 // Binary operators are surrounded by spaces, except the concatenation (`_`)
@@ -362,6 +371,23 @@ function indentWidth(text, tabWidth) {
     width = char === "\t" ? width + tabWidth - (width % tabWidth) : width + 1;
   }
   return width;
+}
+
+// Prints the children of a node and puts back the source text that the parser
+// does not expose between them (`$$`, `|"ns"|`...): only the operands are
+// reformatted.
+function printChildrenWithGaps(node, parts, options) {
+  const output = [];
+  let last = node.startIndex;
+  node.children.forEach((child, i) => {
+    const gap = options.originalText.slice(last, child.startIndex).trim();
+    if (gap) output.push(gap);
+    output.push(parts[i]);
+    last = child.endIndex;
+  });
+  const tail = options.originalText.slice(last, node.endIndex).trim();
+  if (tail) output.push(tail);
+  return concat(output);
 }
 
 function printNodeWithOmittedPrefix(node, parts, options) {
@@ -1283,15 +1309,22 @@ function printObjectScript(path, options, print) {
 
     case "expression": {
       const spaced = !inSpaceSensitiveContext(path);
-      return group(
-        concat(
-          parts.map((part, i) =>
-            spaced && isSpacedOperator(node.children[i])
-              ? concat([" ", part, " "])
-              : part,
-          ),
+      const head = chainHead(node);
+      const breakable =
+        spaced &&
+        options.objectScriptBreakLongExpressions &&
+        isInsideParentheses(head);
+      const doc = concat(
+        parts.map((part, i) =>
+          spaced && isSpacedOperator(node.children[i])
+            ? concat([" ", part, breakable ? line : " "])
+            : part,
         ),
       );
+      if (!breakable) return group(doc);
+      // The operands to the right of an operator belong to the group of the
+      // first expression of the chain, so they all break together.
+      return node === head ? group(indent(doc)) : doc;
     }
     case "embedded_sql":
       return concat(parts);
@@ -1299,7 +1332,7 @@ function printObjectScript(path, options, print) {
     case "embedded_sql_hash":
       return printEmbeddedSql(node, options);
     case "system_defined_function":
-      return printSystemFunction(node, parts, options);
+      return printSystemFunction(path, node, parts, options);
     case "macro_function":
       return printNodeWithOmittedPrefix(node, parts, options);
     case "binary_operator": {
@@ -1362,8 +1395,11 @@ function printObjectScript(path, options, print) {
 
     case "byref_arg":
       return concat(parts);
-    case "method_args":
+    // The arguments of a macro are substituted as text: they are kept as written.
     case "macro_func_args":
+      return rawNodeText(node, options);
+
+    case "method_args":
       return printMethodArgs(path, parts, node, options);
     case "arguments":
       return printArgumentsList(parts, node);
@@ -1474,13 +1510,19 @@ function printObjectScript(path, options, print) {
       return options.originalText.slice(node.startIndex, node.endIndex);
     case "block_comment":
       return printBlockComment(node, options);
+    case "lvn":
+    case "gvn":
+    case "extrinsic_function":
+    case "unary_expression":
+      if (node.children.length === 0) return rawNodeText(node, options);
+      return printChildrenWithGaps(node, parts, options);
+    case "dollar_arg_pair":
+      return concat(parts);
     case "numeric_literal":
     case "macro_constant":
     case "variable":
     case "global_variable":
-    case "lvn":
     case "glvn":
-    case "gvn":
       return options.originalText.slice(node.startIndex, node.endIndex);
     case "rhs":
       return options.originalText.slice(node.startIndex, node.endIndex);

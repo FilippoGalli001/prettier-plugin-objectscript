@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file. The format foll
 ### Added
 
 - `objectScriptBraceStyle` option (`next-line` or `same-line`) for the position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. Control-flow blocks (`If`, `For`, `Try`, ...) are not affected.
+- `objectScriptBreakLongExpressions` option (default `false`) to break long parenthesized expressions after their binary operators.
 - `ClientMethod` support.
 - `Operators.cls` fixture covering every binary operator and the contexts where spacing must be preserved.
 - `GrammarUpdate.cls` fixture with constructs that the previous grammar reported as syntax errors.
@@ -22,7 +23,9 @@ All notable changes to this project are documented in this file. The format foll
 ### Fixed
 
 - Binary operators are now surrounded by spaces (`a*b+c` becomes `a * b + c`, `If x=1` becomes `If x = 1`). Concatenation (`_`), pattern matches (`?`), postconditionals (`Do:x=1`) and `For` ranges stay compact, because a space would change their meaning or is not conventional.
-- Macro call arguments (`$$$ERROR($$$GeneralError, "x")`) are formatted again after the grammar update (`macro_func_args`).
+- The operands of subscripts (`x(i + 1, j)`, `^Data(x + 1, "a")`), extrinsic functions (`$$Func^Rtn(x + 1)`), unary expressions (`'(x < y)`) and `$Select`/`$Case` pairs are formatted instead of being copied from the source.
+- Arguments of macro calls are kept as written, because macros are expanded as text and the community style guide warns that extra spaces can break the result.
+- No whitespace is added inside a postconditional, unless the whole expression is parenthesized, as the InterSystems documentation requires. `Quit:$Piece(a, ",", 1)="" x` was printed with spaces that end the postconditional.
 - Missing space between the return type and `[ Language = python ]`.
 
 ## [1.0.0] - 2026-09-30

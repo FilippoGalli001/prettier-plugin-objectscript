@@ -210,14 +210,14 @@ Class ObjectScript.Examples
     Write !!
     For i = 1:1 {
       Read !, "Capital of TX? ", a
-      Continue:(a'="AUSTIN")
+      Continue:(a '= "AUSTIN")
       Write "...did it in ", i, " tries"
       Quit
     }
     Write !!
     For {
       Read !, "Know what? ", wh
-      Quit:(wh="NO!")
+      Quit:(wh = "NO!")
       Write "   That's what!"
     }
   }
@@ -326,7 +326,7 @@ Class ObjectScript.Examples
     For {
       // start looping
       Set ln = $order(^PersonI("Name", ln)) // use the current last name to get the next
-      Quit:(ln="")  // stop looping when ln becomes empty again
+      Quit:(ln = "")  // stop looping when ln becomes empty again
       Write !, ?5, ln
     }
 
@@ -346,17 +346,17 @@ Class ObjectScript.Examples
     Set ln = ""
     For {
       Set ln = $order(^PersonI("Name", ln))
-      Quit:(ln="")
+      Quit:(ln = "")
       // for each last name, loop through first names
       Set fn = ""
       For {
         Set fn = $order(^PersonI("Name", ln, fn))
-        Quit:(fn="")
+        Quit:(fn = "")
         // for each last name and first name, loop through id numbers
         Set id = ""
         For {
           Set id = $order(^PersonI("Name", ln, fn, id))
-          Quit:(id="")
+          Quit:(id = "")
           // once you have an id number, get the data and display it
           Set rec = ^PersonD(id)
           Write !, $list(rec, 1), ?15, $list(rec, 2), ?30,
@@ -374,7 +374,7 @@ Class ObjectScript.Examples
     Set ln = $order(^PersonI("Name", substring), -1)
     For {
       Set ln = $order(^PersonI("Name", ln))
-      Quit:(ln="")
+      Quit:(ln = "")
       Write !, ln
     }
   }
@@ -388,7 +388,7 @@ Class ObjectScript.Examples
     For {
       Set ln = $order(^PersonI("Name", ln))
       // quit if no match or at end
-      Quit:($extract(ln, 1, $length(substring))'=substring)
+      Quit:($extract(ln, 1, $length(substring)) '= substring)
       Write !, ln
     }
   }

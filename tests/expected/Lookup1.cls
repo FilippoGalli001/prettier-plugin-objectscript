@@ -19,7 +19,7 @@ Class ObjectScript.Lookup1
   ) As %Boolean
   {
     Read !, "Lookup: ", lookup
-    Return:(lookup="") 0 // user entered nothing so return FALSE
+    Return:(lookup = "") 0 // user entered nothing so return FALSE
     If (lookup = "?") {
       Set type = "help", search = ""
     } ElseIf (##class(ObjectScript.DataEntry4).ValidDOB(lookup, .convdate)) {
@@ -40,7 +40,7 @@ Class ObjectScript.Lookup1
   ClassMethod DOB(intdob As %Date)
   {
     // is the date of birth in the index?
-    If '$data(^PersonI("DOB", intdob) ) {
+    If '$data(^PersonI("DOB", intdob)) {
       Write "...no matches"
       Quit
     }
@@ -50,7 +50,7 @@ Class ObjectScript.Lookup1
     Set id = ""
     For count = 1:1 {
       Set id = $order(^PersonI("DOB", intdob, id))
-      Quit:(id="")
+      Quit:(id = "")
       Write !, count, ") "
       Do ..DisplayLine(id)
     }

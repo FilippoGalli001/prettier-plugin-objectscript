@@ -70,12 +70,31 @@ Class ObjectScript.Operators
     }
     Do:x>3 ..Other(x + 1, x * 2)
     Quit:x=0 $$$OK
-    Set r = $Select(x>0:x+1, x<0:x-1, 1:0)
+    Set r = $Select(x > 0:x + 1, x < 0:x - 1, 1:0)
     Set s = $Piece("a,b", ",", x + 1)
     Set t = ..Other(x + 1, x * 2) + 1
-    Set u = ^Data(x+1) + $Length("abc")
-    Set v = $$$MAC(x + 1) * 2
+    Set u = ^Data(x + 1) + $Length("abc")
+    Set v = $$$MAC(x+1) * 2
     Set w = ##class(A.B).Run(x + 1) * 2
+    Quit $$$OK
+  }
+
+  ClassMethod Operands(x As %Integer) As %Status
+  {
+    Set a = x(i + 1, j * 2) + ^Data(x + 1, "a") + ^|"ns"|Glob(i * 2) + ^["sys"]G(j + 1)
+    Set b = $Select(x > 0:x + 1, x < 0:x - 1, 1:0)
+    Set c = $Case(x, 1:"a", 2:"b", :"c")
+    Set d = '(x < y) + -(a * b)
+    Set e = $$Func^Rtn(x + 1, y * 2) * 2 + $$Local(y * 2)
+    Set f = $Order(^Data(x + 1)) + $ListGet(list, i + 1)
+    Set g = $$$MAC(x+1,y*2) * 2
+    Set $Piece(h, ",", x + 1) = y * 2
+    Kill ^Data(x + 1)
+    Merge ^Copy(x + 1) = ^Data(y * 2)
+    Do:(x>0)&&(y<3) ..Other($Length(a, ","), x + 1)
+    Quit:($Extract(a,1,$Length(b))'=b)||(x=0) $$$OK
+    Quit:($Extract(a, 1, $Length(b)) '= b) $$$OK
+    Quit:$Length(a,",")>1 $$$OK
     Quit $$$OK
   }
 }

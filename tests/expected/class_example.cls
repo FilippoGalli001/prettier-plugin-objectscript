@@ -48,7 +48,7 @@ Class Demo.Orders.SignedMessage
       ; *** header checks
 
       ; allowed signature algorithms: RS256, RS384, RS512
-      If '$lf($lb("RS256","RS384","RS512"),header.alg) {
+      If '$lf($lb("RS256", "RS384", "RS512"), header.alg) {
         Set Validation = "Signature algorithm not allowed: "_header.alg
         Quit
       }
