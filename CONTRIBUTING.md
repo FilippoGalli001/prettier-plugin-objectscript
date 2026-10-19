@@ -34,7 +34,7 @@
    npx prettier tests/samples/SQLFormatterStress.cls
    ```
 
-The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is pinned to a specific commit and `package-lock.json` is versioned, so every installation uses the same parser.
+The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is pinned to an exact version and `package-lock.json` is versioned, so every installation uses the same parser.
 
 Without a `.prettierrc`, the plugin can be loaded explicitly:
 

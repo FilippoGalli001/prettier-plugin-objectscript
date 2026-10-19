@@ -68,20 +68,19 @@ Abbreviated commands are expanded, braces and indentation are normalized, and bi
 
 - Node.js 18.14 or newer;
 - npm;
-- Git when installing directly from GitHub;
-- Prettier 3 (installed locally by the commands below);
-- a C/C++ build toolchain and Python 3, because the ObjectScript grammar ships no prebuilt binaries and is compiled by [`node-gyp`](https://github.com/nodejs/node-gyp#installation) during `npm install`:
-  - Windows: [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the "Desktop development with C++" workload;
-  - macOS: Xcode Command Line Tools (`xcode-select --install`);
-  - Linux: `make`, `g++` and `python3` (for example the `build-essential` package on Debian/Ubuntu).
+- Prettier 3 (installed locally by the commands below).
 
-If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or not detected.
+The ObjectScript parser, [`tree-sitter-objectscript`](https://www.npmjs.com/package/tree-sitter-objectscript), is installed automatically with prebuilt binaries for Windows, macOS and Linux (x64 and arm64), so no compiler is needed on those systems. It takes about 400 MB of disk space because it bundles the binaries of all platforms.
 
-Any currently supported Python 3 release works. Python 3.12 or newer requires `node-gyp` 10 or later, which is included in npm 10 and newer.
+On other platforms (for example Linux with musl, such as Alpine), npm compiles the parser with [`node-gyp`](https://github.com/nodejs/node-gyp#installation), which requires a C/C++ build toolchain and Python 3:
+
+- Windows: [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the "Desktop development with C++" workload;
+- macOS: Xcode Command Line Tools (`xcode-select --install`);
+- Linux: `make`, `g++` and `python3` (for example the `build-essential` package on Debian/Ubuntu).
+
+If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or not detected. Python 3.12 or newer requires `node-gyp` 10 or later, which is included in npm 10 and newer.
 
 ## Installation
-
-The package is not yet published to the npm registry, so it is currently installed directly from GitHub.
 
 1. Open a terminal in the root of your project. If the project does not have a `package.json` yet, create one:
 
@@ -92,10 +91,10 @@ The package is not yet published to the npm registry, so it is currently install
 2. Install the workspace-local copy of Prettier and this plugin:
 
    ```bash
-   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.0
+   npm install --save-dev prettier prettier-plugin-objectscript
    ```
 
-   The `#v2.0.0` suffix installs that exact release. Without it, npm installs the latest commit of `main`; replace it with another [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags) to choose a different version.
+   To install from GitHub instead (this requires Git), use `git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.1`. The suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`.
 
 3. Create `.prettierrc` in the project root:
 

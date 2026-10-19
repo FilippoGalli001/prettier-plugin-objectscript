@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-10-19
+
+### Changed
+
+- `tree-sitter-objectscript` is now installed from the npm registry (version `1.10.2`, the same grammar as before) instead of a GitHub archive. The registry package ships prebuilt binaries for Windows, macOS and Linux (x64 and arm64), so a C/C++ compiler and Python are no longer needed on those platforms and the install takes seconds instead of minutes.
+- The README installation steps use `npm install --save-dev prettier prettier-plugin-objectscript`.
+
+### Added
+
+- A workflow that publishes the package to npm when a `v*` tag is pushed.
+
 ## [2.0.0] - 2026-10-19
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-objectscript",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A Prettier 3 plugin for InterSystems ObjectScript class files.",
   "keywords": [
     "prettier",
@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "tree-sitter": "0.25.1",
-    "tree-sitter-objectscript": "https://github.com/intersystems/tree-sitter-objectscript/archive/a1a5d7ae8752cbcf6a4c76e8dd820ca0b0181b27.tar.gz"
+    "tree-sitter-objectscript": "1.10.2"
   },
   "devDependencies": {
     "prettier": "3.9.6"
