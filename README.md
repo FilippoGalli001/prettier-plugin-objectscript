@@ -92,8 +92,10 @@ The package is not yet published to the npm registry, so it is currently install
 2. Install the workspace-local copy of Prettier and this plugin:
 
    ```bash
-   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git
+   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.0
    ```
+
+   The `#v2.0.0` suffix installs that exact release. Without it, npm installs the latest commit of `main`; replace it with another [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags) to choose a different version.
 
 3. Create `.prettierrc` in the project root:
 
