@@ -2,6 +2,8 @@
 
 An opinionated [Prettier 3](https://prettier.io/) plugin for InterSystems ObjectScript class files (`.cls`). Parsing is provided by the UDL grammar from [`tree-sitter-objectscript`](https://github.com/intersystems/tree-sitter-objectscript).
 
+To get started, check the [requirements](#requirements) and follow the [installation](#installation) steps.
+
 ## Example
 
 Input (`example.cls`):
@@ -56,11 +58,11 @@ Abbreviated commands are expanded, braces and indentation are normalized, and bi
 
 - canonical command casing and optional abbreviation expansion (`s` → `Set`);
 - indentation for classes, methods, blocks, commands and JSON literals;
+- spaces around binary operators and after commas in arguments;
 - formatting for ObjectScript expressions, arguments, types and object references;
 - configurable brace position for class and member declarations (`next-line` by default);
 - optional strict parsing;
-- selective AST debugging on `stderr`;
-- regression tests for expected output, valid output syntax and idempotence.
+- regression tests that check the expected output, valid output syntax, idempotence and, with Docker, the behavior in InterSystems IRIS.
 
 ## Requirements
 
@@ -75,11 +77,11 @@ Abbreviated commands are expanded, braces and indentation are normalized, and bi
 
 If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or not detected.
 
-## Install and try the plugin step by step
+Any currently supported Python 3 release works. Python 3.12 or newer requires `node-gyp` 10 or later, which is included in npm 10 and newer.
+
+## Installation
 
 The package is not yet published to the npm registry, so it is currently installed directly from GitHub.
-
-### Option A: use it in an existing ObjectScript project
 
 1. Open a terminal in the root of your project. If the project does not have a `package.json` yet, create one:
 
@@ -127,45 +129,11 @@ The package is not yet published to the npm registry, so it is currently install
 
 A file is considered stable when formatting it a second time produces no further changes. The test suite verifies this idempotence for every fixture.
 
-### Option B: clone this repository and try it locally
+To work on the plugin itself, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-1. Clone and enter the repository:
+## Configuration
 
-   ```bash
-   git clone https://github.com/FilippoGalli001/prettier-plugin-objectscript.git
-   cd prettier-plugin-objectscript
-   ```
-
-2. Install the pinned dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Run the complete test suite:
-
-   ```bash
-   npm test
-   ```
-
-4. Preview the bundled example:
-
-   ```bash
-   npm run format:example
-   ```
-
-5. Try another fixture without modifying it:
-
-   ```bash
-   npx prettier tests/samples/FormatterStress.cls
-   npx prettier tests/samples/SQLFormatterStress.cls
-   ```
-
-The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is pinned to a specific commit and `package-lock.json` is versioned, so every installation uses the same parser.
-
-## Configuration reference
-
-### Options
+Options are set in `.prettierrc` or passed on the command line (for example `--object-script-brace-style=same-line`).
 
 | Option                             | Default     | Description                                                                                                               |
 | ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -174,195 +142,36 @@ The local `.prettierrc` already loads `./index.js`. The Tree-sitter grammar is p
 | `objectScriptBraceStyle`           | `next-line` | `next-line` or `same-line`: position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. |
 | `objectScriptBreakLongExpressions` | `false`     | Breaks parenthesized expressions longer than `printWidth` after their binary operators. Experimental: see Limitations.    |
 | `objectScriptStrictParsing`        | `false`     | Throws when Tree-sitter reports `ERROR` or missing nodes.                                                                 |
-| `objectScriptDebug`                | `false`     | Enables AST diagnostics on `stderr`.                                                                                      |
-| `objectScriptDebugNodes`           | `""`        | Comma-separated node types to trace. Empty means all types.                                                               |
-| `objectScriptDebugRange`           | `""`        | Optional source offset range (`start:end`).                                                                               |
-| `objectScriptDebugFile`            | `""`        | Only traces paths containing this value.                                                                                  |
-| `objectScriptDebugMax`             | `200`       | Maximum debug records per formatting run.                                                                                 |
 
 Strict parsing is opt-in because the upstream grammar can still report an error for some valid legacy ObjectScript constructs (the pinned version no longer does for `ClientMethod`, macros used as statements, `Property` arguments or `Index ... On` with `ELEMENTS`/`KEYS`). The test suite separately guarantees that every generated fixture parses without errors.
 
+The debugging options (`objectScriptDebug*`) are described in [CONTRIBUTING.md](CONTRIBUTING.md#selective-debugging).
+
 ## Limitations
 
-- Only class definition files (`.cls`, UDL format) are supported. Routines (`.mac`, `.int`, `.inc`) are not.
+- Only class definition files (`.cls`, UDL format) are supported. Routines and include files (`.mac`, `.int`, `.inc`) are not.
 - Control-flow blocks (`If`, `For`, `Try`, ...) always keep the opening brace on the same line. `objectScriptBraceStyle` only affects class and member declarations: `next-line` (default) follows the InterSystems documentation, `same-line` gives `ClassMethod Run() {`.
 - Binary operators are surrounded by spaces, and the arguments of function calls and subscripts get a space after each comma (`^Data(x + 1, "a")`). The exceptions are the concatenation `_`, pattern matches and the arguments of macro calls (`$$$ERROR($$$GeneralError,"x")`), which are kept as written because macros are expanded as text.
 - Postconditionals (`Quit:x=1 ...`), `For` ranges and timeouts are printed without added whitespace, because a space would end them. A postconditional that is entirely parenthesized, `Quit:(x = 1)`, is spaced like any other expression.
 - Subscripts are never broken across lines. Long lines are only wrapped at the commas of function arguments, unless `objectScriptBreakLongExpressions` is enabled, which also breaks parenthesized expressions after their operators. The InterSystems documentation allows line breaks within command arguments and parentheses but does not state the rule for operators, so the option is disabled by default: check the result with the compiler before enabling it.
-- The content of `XData`, `Storage` and `Query` blocks, and of triggers or methods written in a language other than ObjectScript (SQL, Python, ...), is preserved verbatim.
+- The bodies of `XData`, `Storage` and `Query`, and of triggers and methods written in another language (SQL, Python, ...), are copied verbatim; their headers, their keywords and the position of the opening brace are still formatted. Triggers written in ObjectScript are formatted like methods.
 - Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them.
 
-## CLI usage
+## Editor integration
 
-When the plugin is listed in `.prettierrc`, normal Prettier commands are enough:
+The plugin works with the Prettier extension of VS Code. Once the plugin is installed and `.prettierrc` is configured, this `.vscode/settings.json` formats `.cls` files on save:
 
-```bash
-npx prettier MyClass.cls
-npx prettier --write MyClass.cls
-npx prettier --check "src/**/*.cls"
+```json
+{
+  "[objectscript-class]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "prettier.requireConfig": true
+}
 ```
 
-When developing the plugin without a configuration file, it can also be loaded explicitly:
-
-```bash
-npx prettier --plugin ./index.js example.cls
-```
-
-## Selective debugging
-
-Debug output is structured as one JSON record per line, is written only to `stderr`, and never contaminates Prettier's formatted output.
-
-Using Prettier options:
-
-```bash
-npx prettier --plugin ./index.js \
-  --object-script-debug \
-  --object-script-debug-nodes=oref_chain_segment,variable_datatype \
-  --object-script-debug-max=20 \
-  example.cls 2> objectscript-debug.log
-```
-
-The same filters can be supplied through environment variables:
-
-```text
-OBJECTSCRIPT_DEBUG=1
-OBJECTSCRIPT_DEBUG_NODES=oref_chain_segment,variable_datatype
-OBJECTSCRIPT_DEBUG_RANGE=100:500
-OBJECTSCRIPT_DEBUG_FILE=Example.cls
-OBJECTSCRIPT_DEBUG_MAX=20
-```
-
-`OBJECTSCRIPT_DEBUG` can also directly contain a comma-separated node list:
-
-```bash
-OBJECTSCRIPT_DEBUG=oref_chain_segment,json_object_literal_pair \
-  npx prettier --plugin ./index.js example.cls 2> objectscript-debug.log
-```
-
-For a readable Tree-sitter subtree without running Prettier:
-
-```bash
-npm run inspect:ast -- example.cls oref_chain_segment variable_datatype
-```
-
-Without node types, the inspector prints parse diagnostics and node-type counts:
-
-```bash
-npm run inspect:ast -- example.cls
-```
-
-## Testing
-
-Run the complete suite:
-
-```bash
-npm test
-```
-
-For every fixture the suite verifies:
-
-1. the formatted output matches the reviewed file in `tests/expected/`;
-2. formatting is idempotent;
-3. the generated output has no Tree-sitter diagnostics;
-4. command options, strict parsing and selective debug work as expected.
-
-### Checking the behavior against IRIS
-
-`npm run test:iris` starts a throwaway [InterSystems IRIS Community](https://hub.docker.com/r/intersystems/iris-community) container (Docker is required, the first run downloads about 3.5 GB) and checks that formatting does not change what the code does:
-
-1. the fixtures in `tests/samples` are compiled as written and after formatting with `next-line`, `same-line` and `objectScriptBreakLongExpressions`; the compilation messages must be the same (some fixtures use classes that do not exist in a clean IRIS, so only differences count);
-2. `tests/iris/Ops.cls` is executable: `Check.Ops.Run()` must print exactly the same output before and after formatting.
-
-Set `IRIS_IMAGE` to use another image. Pass `-- --keep` to keep the container for inspection.
-
-After an intentional formatter change, regenerate expected files only after reviewing the output:
-
-```bash
-npm run test:update
-git diff -- tests/expected
-npm test
-```
-
-The update script refuses to write expected files if formatting is non-idempotent or introduces parser diagnostics.
-
-## VS Code setup step by step
-
-The recommended integration uses the official Prettier extension together with the InterSystems ObjectScript extension. Prettier and this plugin remain local dependencies of the workspace; no global npm installation is required.
-
-### Opening this repository in VS Code
-
-1. Clone the repository, install its dependencies and open it:
-
-   ```bash
-   git clone https://github.com/FilippoGalli001/prettier-plugin-objectscript.git
-   cd prettier-plugin-objectscript
-   npm install
-   code .
-   ```
-
-2. Trust the workspace when VS Code asks. Local Prettier modules and plugins are disabled in untrusted workspaces.
-
-3. Install the recommended extensions when the workspace notification appears:
-
-   - [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) (`esbenp.prettier-vscode`);
-   - [InterSystems ObjectScript](https://marketplace.visualstudio.com/items?itemName=intersystems-community.vscode-objectscript) (`intersystems-community.vscode-objectscript`).
-
-   They can also be installed from the terminal:
-
-   ```bash
-   code --install-extension esbenp.prettier-vscode
-   code --install-extension intersystems-community.vscode-objectscript
-   ```
-
-4. Open a `.cls` file and verify that the language mode in the status bar is **ObjectScript Class**. Its VS Code language ID is `objectscript-class`.
-
-5. Run **Format Document With... → Prettier - Code formatter**. If prompted, choose **Set as Default Formatter**.
-
-6. Save the file. This repository already contains `.vscode/settings.json`, so format-on-save is enabled for `.cls` files.
-
-### Enabling it in another ObjectScript workspace
-
-1. Complete **Option A** in the installation section: install the packages and create `.prettierrc`.
-
-2. Install the two VS Code extensions listed above.
-
-3. Create `.vscode/settings.json` in the ObjectScript project:
-
-   ```json
-   {
-     "[objectscript-class]": {
-       "editor.defaultFormatter": "esbenp.prettier-vscode",
-       "editor.formatOnSave": true
-     },
-     "prettier.requireConfig": true
-   }
-   ```
-
-4. Optionally create `.vscode/extensions.json` so collaborators receive the same recommendations:
-
-   ```json
-   {
-     "recommendations": [
-       "esbenp.prettier-vscode",
-       "intersystems-community.vscode-objectscript"
-     ]
-   }
-   ```
-
-5. Reload VS Code and format a `.cls` file. The Prettier extension resolves the workspace-local `prettier` package and `prettier-plugin-objectscript` from `node_modules`.
-
-### VS Code troubleshooting
-
-If formatting is not available:
-
-1. verify that the workspace is trusted;
-2. run `npm install` in the workspace root;
-3. verify that `.prettierrc` contains `"plugins": ["prettier-plugin-objectscript"]`;
-4. check that the current language mode is `ObjectScript Class` (`objectscript-class`);
-5. run **Developer: Reload Window**;
-6. inspect **View → Output → Prettier** for module-resolution errors.
-
-Setting `prettier.prettierPath` is normally unnecessary and can make the workspace less portable.
+The full setup and troubleshooting are in [docs/vscode.md](docs/vscode.md).
 
 ## License
 
