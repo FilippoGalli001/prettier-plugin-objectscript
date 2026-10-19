@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file. The format foll
 
 - `objectScriptBraceStyle` option (`next-line` or `same-line`) for the position of the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger`. Control-flow blocks (`If`, `For`, `Try`, ...) are not affected.
 - `ClientMethod` support.
+- `Operators.cls` fixture covering every binary operator and the contexts where spacing must be preserved.
 - `GrammarUpdate.cls` fixture with constructs that the previous grammar reported as syntax errors.
 
 ### Changed
@@ -20,6 +21,7 @@ All notable changes to this project are documented in this file. The format foll
 
 ### Fixed
 
+- Binary operators are now surrounded by spaces (`a*b+c` becomes `a * b + c`, `If x=1` becomes `If x = 1`). Concatenation (`_`), pattern matches (`?`), postconditionals (`Do:x=1`) and `For` ranges stay compact, because a space would change their meaning or is not conventional.
 - Macro call arguments (`$$$ERROR($$$GeneralError, "x")`) are formatted again after the grammar update (`macro_func_args`).
 - Missing space between the return type and `[ Language = python ]`.
 

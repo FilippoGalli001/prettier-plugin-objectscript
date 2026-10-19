@@ -60,10 +60,10 @@ Class ObjectScript.DataEntry3
   ClassMethod ValidDOB(date As %String, Output convdate As %Date) As %Boolean
   {
     Set convdate = $zdateh(date, 5,,,,,,, -1)
-    If (convdate=-1) {
+    If (convdate = -1) {
       Write !, "Must be a valid past date"
       Return 0 // invalid date
-    } ElseIf (convdate>$piece($horolog, ",", 1)) {
+    } ElseIf (convdate > $piece($horolog, ",", 1)) {
       Write !, "Must be a valid past date"
       Return 0 // invalid because it's in the future
     } Else {

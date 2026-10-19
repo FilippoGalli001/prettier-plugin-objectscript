@@ -234,6 +234,30 @@ function braceSeparator(options) {
   return options.objectScriptBraceStyle === "next-line" ? hardline : " ";
 }
 
+// Contexts where a space ends the argument: `Do:a=1 Foo` is a postconditional
+// followed by an argument, `Do:a = 1 Foo` is not. The operands of a `For`
+// range are kept compact for the same reason.
+const SPACE_SENSITIVE_TYPES = new Set([
+  "post_conditional",
+  "for_parameter",
+  "timeout",
+]);
+
+function inSpaceSensitiveContext(path) {
+  for (let level = 0, ancestor; (ancestor = path.getParentNode(level)); level++) {
+    if (SPACE_SENSITIVE_TYPES.has(ancestor.type)) return true;
+  }
+  return false;
+}
+
+// Binary operators are surrounded by spaces, except the concatenation (`_`)
+// and the bare `'`, which stay attached to their operands.
+function isSpacedOperator(node) {
+  if (node.type !== "binary_operator") return false;
+  const op = node.text;
+  return op !== "_" && op !== "'" && op !== ".";
+}
+
 // Header of a class member (`Query Name(args) As Type [ Kw ]`) or method,
 // up to (excluding) the child at `endIndex`.
 function printMemberHeader(node, parts, endIndex) {
@@ -1257,8 +1281,18 @@ function printObjectScript(path, options, print) {
       return join(" ", parts);
     }
 
-    case "expression":
-      return group(concat(parts));
+    case "expression": {
+      const spaced = !inSpaceSensitiveContext(path);
+      return group(
+        concat(
+          parts.map((part, i) =>
+            spaced && isSpacedOperator(node.children[i])
+              ? concat([" ", part, " "])
+              : part,
+          ),
+        ),
+      );
+    }
     case "embedded_sql":
       return concat(parts);
     case "embedded_sql_amp":

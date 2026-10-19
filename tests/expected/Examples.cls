@@ -43,17 +43,17 @@ Class ObjectScript.Examples
 
   ClassMethod DoubleByVal(anynumber As %Numeric) As %Numeric
   {
-    Return anynumber*2
+    Return anynumber * 2
   }
 
   ClassMethod DoubleByRef1(ByRef anynumber As %Numeric)
   {
-    Set anynumber = anynumber*2
+    Set anynumber = anynumber * 2
   }
 
   ClassMethod DoubleByRef2(anynumber As %Numeric, Output retnumber As %Numeric)
   {
-    Set retnumber = anynumber*2
+    Set retnumber = anynumber * 2
   }
 
   /// demo of <UNDEFINED> error
@@ -68,10 +68,10 @@ Class ObjectScript.Examples
   ClassMethod Root()
   {
     Read "Team: ", t
-    If (t="") {
+    If (t = "") {
       Quit
     } // stop execution if no team is specified
-    If (t="METS") {
+    If (t = "METS") {
       Write !, "Go METS!"
     } Else {
       Write !, "Boo ", t, "!"
@@ -82,75 +82,75 @@ Class ObjectScript.Examples
   ClassMethod If()
   {
     Set x = 5, y = 0, z = -5
-    If (x=5) {
+    If (x = 5) {
       Write !, "x is equal to 5"
     } Else {
       Write !, "false"
     }
-    If (x=10) {
+    If (x = 10) {
       Write !, "x is equal to 10"
     } Else {
       Write !, "false"
     }
-    If (x<y) {
+    If (x < y) {
       Write !, "x is less than y"
     } Else {
       Write !, "false"
     }
-    If (x>y) {
+    If (x > y) {
       Write !, "x is greater than y"
     } Else {
       Write !, "false"
     }
     Write !
-    If (##class(%SYSTEM.Util).NumberOfCPUs()>2) {
+    If (##class(%SYSTEM.Util).NumberOfCPUs() > 2) {
       Write !, "there are more than 2 CPUs"
     } Else {
       Write !, "false"
     }
-    If (x>$zsqr(64)) {
+    If (x > $zsqr(64)) {
       Write !, "x is greater than square root of 64"
     } Else {
       Write !, "false"
     }
     Write !
-    If (x&&y) {
+    If (x && y) {
       Write !, "both x and y are true (non-zero)"
     } Else {
       Write !, "false"
     }
-    If (x&&z) {
+    If (x && z) {
       Write !, "both x and z are true (non-zero)"
     } Else {
       Write !, "false"
     }
-    If (x&&y&&z) {
+    If (x && y && z) {
       Write !, "x, y, and z are all true (non-zero)"
     } Else {
       Write !, "false"
     }
-    If (x||y||z) {
+    If (x || y || z) {
       Write !, "at least one of x, y, or z is true (non-zero)"
     } Else {
       Write !, "false"
     }
     Write !
-    If ((x>y)||(y<z)) {
+    If ((x > y) || (y < z)) {
       Write !, "either x is greater than y OR y is less than z"
     } Else {
       Write !, "false"
     }
-    If (x>y||y<z) {
+    If (x > y || y < z) {
       Write !, "without proper parentheses, this expression is false"
     } Else {
       Write !, "false"
     }
-    If ((x>y)&&(z<y)) {
+    If ((x > y) && (z < y)) {
       Write !, "x is greater than y AND z is less than y"
     } Else {
       Write !, "false"
     }
-    If (x>y&&z<y) {
+    If (x > y && z < y) {
       Write !, "without proper parentheses, this expression is also false"
     } Else {
       Write !, "false"
@@ -166,7 +166,7 @@ Class ObjectScript.Examples
     } Else {
       Write !, "false"
     }
-    If (x'<y) {
+    If (x '< y) {
       Write !, "x is not less than y"
     } Else {
       Write !, "false"
@@ -202,7 +202,7 @@ Class ObjectScript.Examples
     Write !!
     For i = 1:1 {
       Read !, "Capital of MA? ", a
-      If (a="BOSTON") {
+      If (a = "BOSTON") {
         Write "...did it in ", i, " tries"
         Quit
       }
@@ -231,14 +231,14 @@ Class ObjectScript.Examples
     Write !
     Do {
       Write fib, "  "
-      Set fib = t1+t2, t1 = t2, t2 = fib
-    } While (fib'>upto)
+      Set fib = t1 + t2, t1 = t2, t2 = fib
+    } While (fib '> upto)
 
     Set t1 = 1, t2 = 1, fib = 1
     Write !
-    While (fib'>upto) {
+    While (fib '> upto) {
       Write fib, "  "
-      Set fib = t1+t2, t1 = t2, t2 = fib
+      Set fib = t1 + t2, t1 = t2, t2 = fib
     }
   }
 
@@ -256,7 +256,7 @@ Class ObjectScript.Examples
 
     // <DIVIDE> error throws a system exception
     Try {
-      Write 1/0
+      Write 1 / 0
     } Catch err {
       Write !, "Error name: ", ?20, err.Name, !, "Error code: ", ?20, err.Code,
         !, "Error location: ", ?20, err.Location, !, "Additional data: ", ?20,
@@ -269,12 +269,12 @@ Class ObjectScript.Examples
       ex.Data = "Tutorial Example"
     Try {
       Write !, "Hello!", !
-      If (x>=5) Throw ex // throw the exception
+      If (x >= 5) Throw ex // throw the exception
     } Catch err {
       Write !, "Error name: ", ?20, err.Name, !, "Error code: ", ?20, err.Code,
         !, "Error location: ", ?20, err.Location, !, "Additional data: ", ?20,
         err.Data, !
-      If (x=5) Return // terminate method
+      If (x = 5) Return // terminate method
     }
     Write !, "Finished!"
   }
@@ -332,7 +332,7 @@ Class ObjectScript.Examples
 
     Write !!, "Using While"
     Set ln = $order(^PersonI("Name", "")) // get the first last name
-    While (ln'="") {
+    While (ln '= "") {
       // only loop if there is at least one last name
       Write !, ?5, ln
       Set ln = $order(^PersonI("Name", ln)) // use the current last name to get the next

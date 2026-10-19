@@ -67,10 +67,10 @@ Class ObjectScript.DataEntry4
   ClassMethod ValidDOB(date As %String, Output convdate As %Date) As %Boolean
   {
     Set convdate = $zdateh(date, 5,,,,,,, -1)
-    If (convdate=-1) {
+    If (convdate = -1) {
       Write !, "Must be a valid past date"
       Return 0 // invalid date
-    } ElseIf (convdate>$piece($horolog, ",", 1)) {
+    } ElseIf (convdate > $piece($horolog, ",", 1)) {
       Write !, "Must be a valid past date"
       Return 0 // invalid because it's in the future
     } Else {
@@ -98,7 +98,7 @@ Class ObjectScript.DataEntry4
   {
     Read !, "Store? (y/n): ", yn // ask if user wants to store
     // only go on if user says yes
-    If ((yn'="y")&&(yn'="Y")) {
+    If ((yn '= "y") && (yn '= "Y")) {
       Write "...not stored."
       Quit
     }
@@ -121,7 +121,7 @@ Class ObjectScript.DataEntry4
 
     /* these statements turn the id into a "chunk #" and a "position #"
     and set a bit into the bitmap index */
-    Set chunk = (id\64000)+1, position = (id#64000)+1
+    Set chunk = (id \ 64000) + 1, position = (id # 64000) + 1
     Set $bit(^PersonI("Bitmap-ID", chunk), position) = 1
     TCommit
     Write "...stored"

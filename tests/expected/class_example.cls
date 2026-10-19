@@ -14,13 +14,13 @@ Class Demo.Orders.SignedMessage
   {
     Set sc = $$$OK
     Try {
-      If rawHeader'["Signed" {
+      If rawHeader '[ "Signed" {
         Set Validation = "Signed message header not found"
         Quit
       }
       ; *** split the message into its three parts: header, payload and signature
       Set rawHeader = $ZSTRIP($PIECE(rawHeader, "Signed", 2), "<>W")
-      If (rawHeader="")||($l(rawHeader, ".")'=3) {
+      If (rawHeader = "") || ($l(rawHeader, ".") '= 3) {
         Set Validation = "Malformed message"
         Quit
       }
@@ -55,7 +55,7 @@ Class Demo.Orders.SignedMessage
       Set Bitlength = $e(header.alg, 3, 5)
 
       ; the message type must be MSG
-      If header.typ'="MSG" {
+      If header.typ '= "MSG" {
         Set Validation = "Invalid message type: "_header.typ
         Quit
       }
@@ -64,27 +64,27 @@ Class Demo.Orders.SignedMessage
 
       ; the certificate CN must match the sender declared in the payload
       Set senderCN = $zstrip($p(payload.sender, "orders:", 2), "<>W")
-      If senderCertSubjectCN'=senderCN {
+      If senderCertSubjectCN '= senderCN {
         Set Validation = "Sender does not match the certificate"
         Quit
       }
-      If payload.orderId="" {
+      If payload.orderId = "" {
         Set Validation = "Missing order identifier"
         Quit
       }
       ; the recipient must be the orders service
-      If (payload.target'["/api/orders/v1") {
+      If (payload.target '[ "/api/orders/v1") {
         Set Validation = "Invalid message recipient"
         Quit
       }
       ; the issue date cannot be in the future
-      If (payload.issuedAt>$ZDATETIME($h, -2)) {
+      If (payload.issuedAt > $ZDATETIME($h, -2)) {
         Set Validation = "Invalid issue date: "_payload.issuedAt_" - "_$ZDATETIME($h,
             -2)
         Quit
       }
       ; the message must not be expired
-      If (payload.expiresAt<$ZDATETIME($h, -2)) {
+      If (payload.expiresAt < $ZDATETIME($h, -2)) {
         Set Validation = "Message expired"
         Quit
       }
@@ -96,7 +96,7 @@ Class Demo.Orders.SignedMessage
 
       ; the sender certificate must be issued by the configured CA
       Set Result = $SYSTEM.Encryption.X509VerifyCertChain(senderCert, FileCA)
-      If Result'="OK" {
+      If Result '= "OK" {
         Set Validation = "Untrusted sender certificate: "_Result
         Quit
       }

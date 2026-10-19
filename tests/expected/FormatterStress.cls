@@ -19,11 +19,11 @@ Class ObjectScript.FormatterStress Extends %Persistent
     Set payload.meta = {"source": "stress", "version": "1.0"}
     Try {
       For i = 1:1:3 {
-        Do payload.scores.%Push(i*10)
+        Do payload.scores.%Push(i * 10)
       }
       If verbose {
         Write !, "Name: ", payload.name, !
-      } ElseIf payload.name="" {
+      } ElseIf payload.name = "" {
         Set sc = $$$ERROR($$$GeneralError, "Missing name")
       } Else {
         Set payload.name = ..Transform(payload.name)

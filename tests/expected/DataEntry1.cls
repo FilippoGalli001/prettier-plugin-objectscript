@@ -3,7 +3,7 @@ Class ObjectScript.DataEntry1
   ClassMethod Main()
   {
     Read !, "Name: ", name
-    If name="" {
+    If name = "" {
       Quit
     } // user entered nothing
     Read !, "Phone: ", phone

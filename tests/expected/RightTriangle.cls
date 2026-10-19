@@ -38,7 +38,7 @@ Class ObjectScript.RightTriangle
   /// Is num negative?
   ClassMethod IsNegative(num As %Numeric)
   {
-    If (num'>0) {
+    If (num '> 0) {
       Write "  Enter a positive number."
       Return 1 // Return true
     } Else {
@@ -50,10 +50,10 @@ Class ObjectScript.RightTriangle
   /// Compute and display area and hypotenuse
   ClassMethod Compute(units As %String, A As %Numeric, B As %Numeric) [Private]
   {
-    Set area = (A*B)/2,
+    Set area = (A * B) / 2,
       area = $Justify(area, 0, 2),
       // Round hypot to 2 places
-      squaredSides = (A**2)+(B**2)
+      squaredSides = (A ** 2) + (B ** 2)
     Set hypot = $ZSqr(squaredSides) // $ZSqr function computes square root
     Set hypot = $Justify(hypot, 0, 2) // Round hypot to 2 places
     Write !!, "The area of this triangle is ", area, " square ", units, ".", !!,

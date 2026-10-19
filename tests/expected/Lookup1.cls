@@ -4,9 +4,9 @@ Class ObjectScript.Lookup1
   ClassMethod Main()
   {
     While ..GetInput(.type, .search) {
-      If (type="help") {
+      If (type = "help") {
         Do ..Help()
-      } ElseIf (type="dob") {
+      } ElseIf (type = "dob") {
         Do ..DOB(search)
       }
     }
@@ -20,7 +20,7 @@ Class ObjectScript.Lookup1
   {
     Read !, "Lookup: ", lookup
     Return:(lookup="") 0 // user entered nothing so return FALSE
-    If (lookup="?") {
+    If (lookup = "?") {
       Set type = "help", search = ""
     } ElseIf (##class(ObjectScript.DataEntry4).ValidDOB(lookup, .convdate)) {
       Set type = "dob", search = convdate

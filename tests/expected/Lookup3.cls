@@ -5,16 +5,16 @@ Class ObjectScript.Lookup3
   {
     Do ..CurrentCount()
     While ..GetInput(.type, .search) {
-      If (type="help") {
+      If (type = "help") {
         Do ..Help() Set id = ""
-      } ElseIf (type="phone") {
+      } ElseIf (type = "phone") {
         Do ..Phone(search, .id)
-      } ElseIf (type="name") {
+      } ElseIf (type = "name") {
         Do ..Name(search, .id)
-      } ElseIf (type="dob") {
+      } ElseIf (type = "dob") {
         Do ..DOB(search, .id)
       }
-      If ((type'="")&&(id'="")) {
+      If ((type '= "") && (id '= "")) {
         Do ..TakeAction(id)
       }
     }
@@ -28,7 +28,7 @@ Class ObjectScript.Lookup3
   {
     Read !, "Lookup: ", lookup
     Return:(lookup="") 0 // user entered nothing so return FALSE
-    If (lookup="?") {
+    If (lookup = "?") {
       Set type = "help", search = ""
     }
     // the RegEx accepts ###- or ###-###-#### only
@@ -89,7 +89,7 @@ Class ObjectScript.Lookup3
     Set count = 0
     // handle exact match first
     Set id = $get(^PersonI("Phone", phone))
-    If (id'="") {
+    If (id '= "") {
       Set count = 1
       Set matches(1) = id // keep track of exact match
       Write !, "1) "
@@ -101,9 +101,9 @@ Class ObjectScript.Lookup3
       // use 3-argument $order to get first matching phone number and its ID number
       Set ph = $order(^PersonI("Phone", phone), 1, id)
       // loop through matching phones, and number them
-      While ($extract(ph, 1, $length(phone))=phone) {
+      While ($extract(ph, 1, $length(phone)) = phone) {
         Write:(count=0) "...finding area code matches"
-        Set count = count+1
+        Set count = count + 1
         Set matches(count) = id // keep track of matches
         Write !, count, ") "
         Do ..DisplayLine(id)
@@ -111,7 +111,7 @@ Class ObjectScript.Lookup3
         Set ph = $order(^PersonI("Phone", ph), 1, id)
       }
     }
-    If (count=0) {
+    If (count = 0) {
       Write "...no matches"
     } Else {
       Do ..Select(.matches, .id)
@@ -132,7 +132,7 @@ Class ObjectScript.Lookup3
       // quit as soon as last name doesn't match original
       Quit:($extract(ln, 1, $length(last))'=last)
       // first may be "". Otherwise, it may be an exact match, so find preceding first name
-      If (first="") {
+      If (first = "") {
         Set fn = ""
       } Else {
         Set fn = $order(^PersonI("Name", ln, first), -1)
@@ -148,14 +148,14 @@ Class ObjectScript.Lookup3
           Set id = $order(^PersonI("Name", ln, fn, id))
           Quit:(id="")
           Write:(count=0) "...finding name matches"
-          Set count = count+1
+          Set count = count + 1
           Set matches(count) = id // keep track of matches
           Write !, count, ") "
           Do ..DisplayLine(id)
         }
       }
     }
-    If (count=0) {
+    If (count = 0) {
       Write "...no matches"
     } Else {
       Do ..Select(.matches, .id)
@@ -183,7 +183,7 @@ Class ObjectScript.Lookup3
       Set chunk = $order(^PersonI("Bitmap-ID", chunk), 1, bits)
       Quit:(chunk="")
       // add the "1" bits to the count
-      Set records = records+$bitcount(bits, 1)
+      Set records = records + $bitcount(bits, 1)
     }
     Write !, "There are ", records, " records in the database."
   }
@@ -209,14 +209,14 @@ Class ObjectScript.Lookup3
 
     // ask if user wants to delete
     Read !, "Delete? (y/n): ", yn
-    If ((yn="y")||(yn="Y")) {
+    If ((yn = "y") || (yn = "Y")) {
       Do ..Delete(id, record)
       Quit
     }
 
     // ask if user wants to edit
     Read !, "Edit? (y/n): ", yn
-    If ((yn="y")||(yn="Y")) {
+    If ((yn = "y") || (yn = "Y")) {
       Do ..Edit(id, record)
       Quit
     }
@@ -234,7 +234,7 @@ Class ObjectScript.Lookup3
     // retrieve data
     Set $listbuild(name, phone, intdob) = record
     Set last = $piece(name, ",", 1), first = $piece(name, ",", 2)
-    Set chunk = (id\64000)+1, position = (id#64000)+1
+    Set chunk = (id \ 64000) + 1, position = (id # 64000) + 1
 
     // change all globals inside a transaction
     TStart
@@ -275,7 +275,7 @@ Class ObjectScript.Lookup3
       Write !, "Name: ", currentname, " => "
       Read newname
       // enter nothing to keep current value
-      If (newname="") {
+      If (newname = "") {
         Set newname = currentname
         Quit
       }
@@ -285,7 +285,7 @@ Class ObjectScript.Lookup3
       Write !, "Phone: ", currentphone, " => "
       Read "(617): ", newphone
       // enter nothing to keep current value
-      If (newphone="") {
+      If (newphone = "") {
         Set newphone = currentphone
         Quit
       }
@@ -295,7 +295,7 @@ Class ObjectScript.Lookup3
       Write !, "DOB: ", $zdate(currentintdob, 2), "=> "
       Read newdob
       // enter nothing to keep current value
-      If (newdob="") {
+      If (newdob = "") {
         Set newintdob = currentintdob
         Quit
       }
@@ -313,7 +313,7 @@ Class ObjectScript.Lookup3
   {
     Read !, "Store updates? (y/n): ", yn // ask if user wants to store
     // only go on if user says yes
-    If ((yn'="y")&&(yn'="Y")) {
+    If ((yn '= "y") && (yn '= "Y")) {
       Write "...not stored."
       Quit
     }
@@ -329,17 +329,17 @@ Class ObjectScript.Lookup3
     // only update indices if the data was changed
     TStart
     Set ^PersonD(id) = newanswers
-    If (newname'=currentname) {
+    If (newname '= currentname) {
       // kill old name and add new name to index
       Kill ^PersonI("Name", currentlast, currentfirst, id)
       Set ^PersonI("Name", newlast, newfirst, id) = ""
     }
-    If (newphone'=currentphone) {
+    If (newphone '= currentphone) {
       // kill old phone and add new phone to index
       Kill ^PersonI("Phone", currentphone)
       Set ^PersonI("Phone", newphone) = id
     }
-    If (newintdob'=currentintdob) {
+    If (newintdob '= currentintdob) {
       // kill old dob and add new dob to index
       Kill ^PersonI("DOB", currentintdob, id)
       Set ^PersonI("DOB", newintdob, id) = ""

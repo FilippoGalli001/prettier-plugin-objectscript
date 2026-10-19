@@ -5,16 +5,16 @@ Class ObjectScript.Lookup2
   {
     Do ..CurrentCount()
     While ..GetInput(.type, .search) {
-      If (type="help") {
+      If (type = "help") {
         Do ..Help() Set id = ""
-      } ElseIf (type="phone") {
+      } ElseIf (type = "phone") {
         Do ..Phone(search, .id)
-      } ElseIf (type="name") {
+      } ElseIf (type = "name") {
         Do ..Name(search, .id)
-      } ElseIf (type="dob") {
+      } ElseIf (type = "dob") {
         Do ..DOB(search, .id)
       }
-      If ((type'="")&&(id'="")) {
+      If ((type '= "") && (id '= "")) {
         Do ..TakeAction(id)
       }
     }
@@ -28,7 +28,7 @@ Class ObjectScript.Lookup2
   {
     Read !, "Lookup: ", lookup
     Return:(lookup="") 0 // user entered nothing so return FALSE
-    If (lookup="?") {
+    If (lookup = "?") {
       Set type = "help", search = ""
     }
     // the RegEx accepts ###- or ###-###-#### only
@@ -89,7 +89,7 @@ Class ObjectScript.Lookup2
     Set count = 0
     // handle exact match first
     Set id = $get(^PersonI("Phone", phone))
-    If (id'="") {
+    If (id '= "") {
       Set count = 1
       Set matches(1) = id // keep track of exact match
       Write !, "1) "
@@ -101,9 +101,9 @@ Class ObjectScript.Lookup2
       // use 3-argument $order to get first matching phone number and its ID number
       Set ph = $order(^PersonI("Phone", phone), 1, id)
       // loop through matching phones, and number them
-      While ($extract(ph, 1, $length(phone))=phone) {
+      While ($extract(ph, 1, $length(phone)) = phone) {
         Write:(count=0) "...finding area code matches"
-        Set count = count+1
+        Set count = count + 1
         Set matches(count) = id // keep track of matches
         Write !, count, ") "
         Do ..DisplayLine(id)
@@ -111,7 +111,7 @@ Class ObjectScript.Lookup2
         Set ph = $order(^PersonI("Phone", ph), 1, id)
       }
     }
-    If (count=0) {
+    If (count = 0) {
       Write "...no matches"
     } Else {
       Do ..Select(.matches, .id)
@@ -132,7 +132,7 @@ Class ObjectScript.Lookup2
       // quit as soon as last name doesn't match original
       Quit:($extract(ln, 1, $length(last))'=last)
       // first may be "". Otherwise, it may be an exact match, so find preceding first name
-      If (first="") {
+      If (first = "") {
         Set fn = ""
       } Else {
         Set fn = $order(^PersonI("Name", ln, first), -1)
@@ -148,14 +148,14 @@ Class ObjectScript.Lookup2
           Set id = $order(^PersonI("Name", ln, fn, id))
           Quit:(id="")
           Write:(count=0) "...finding name matches"
-          Set count = count+1
+          Set count = count + 1
           Set matches(count) = id // keep track of matches
           Write !, count, ") "
           Do ..DisplayLine(id)
         }
       }
     }
-    If (count=0) {
+    If (count = 0) {
       Write "...no matches"
     } Else {
       Do ..Select(.matches, .id)
@@ -183,7 +183,7 @@ Class ObjectScript.Lookup2
       Set chunk = $order(^PersonI("Bitmap-ID", chunk), 1, bits)
       Quit:(chunk="")
       // add the "1" bits to the count
-      Set records = records+$bitcount(bits, 1)
+      Set records = records + $bitcount(bits, 1)
     }
     Write !, "There are ", records, " records in the database."
   }

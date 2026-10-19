@@ -401,3 +401,46 @@ test("objectScriptBraceStyle same-line keeps the brace on the declaration line",
   );
   assert.equal(await format(formatted, options), formatted);
 });
+
+function leaves(node, result = []) {
+  if (node.childCount === 0) {
+    if (node.endIndex > node.startIndex) result.push(`${node.type}:${node.text}`);
+  } else {
+    for (const child of node.children) leaves(child, result);
+  }
+  return result;
+}
+
+test("spaces around binary operators never change how the code is parsed", async () => {
+  const input = fs.readFileSync(path.join(samplesDir, "Operators.cls"), "utf8");
+  const formatted = await format(input);
+
+  assert.deepEqual(
+    leaves(objectScriptParser.parse(formatted)),
+    leaves(objectScriptParser.parse(input)),
+  );
+});
+
+test("keeps postconditionals and For ranges compact", async () => {
+  const input = `Class Demo {
+Method X(a, b) {
+ Do:a=1 ..Y(a+1)
+ Quit:a'=b&&b>2 a+b
+ For i=1:1:a+1 { Write i+1 }
+}
+}`;
+  const formatted = await format(input);
+
+  assert.match(formatted, /Do:a=1 \.\.Y\(a \+ 1\)/);
+  assert.match(formatted, /Quit:a'=b&&b>2 a \+ b/);
+  assert.match(formatted, /For i = 1:1:a\+1 \{\n\s+Write i \+ 1/);
+});
+
+test("keeps concatenation and pattern matches compact", async () => {
+  const formatted = await format(
+    'Class Demo {\nMethod X(s) {\n Set t="a"_s_"b"\n Set ok=(s?3N)\n}\n}',
+  );
+
+  assert.match(formatted, /Set t = "a"_s_"b"/);
+  assert.match(formatted, /Set ok = \(s\?3N\)/);
+});
