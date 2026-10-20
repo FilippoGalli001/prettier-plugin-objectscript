@@ -148,15 +148,19 @@ Strict parsing is opt-in because the upstream grammar can still report an error 
 
 The debugging options (`objectScriptDebug*`) are described in [CONTRIBUTING.md](CONTRIBUTING.md#selective-debugging).
 
+## Formatting rules
+
+- **Braces:** the opening brace of classes, methods, `XData`, `Storage`, `Query` and `Trigger` goes on its own line (`next-line`, as in the InterSystems documentation) or stays on the same line with `objectScriptBraceStyle: "same-line"`. Control-flow blocks (`If`, `For`, `Try`, ...) always keep the brace on the same line.
+- **Operators:** binary operators are surrounded by spaces (`a*b+c` becomes `a * b + c`) and arguments get a space after each comma, including in subscripts (`^Data(x + 1, "a")`).
+- **Kept compact:** concatenation (`_`), pattern matches, `For` ranges, timeouts and postconditionals (`Quit:x=1`), because a space would change their meaning or end them. A fully parenthesized postconditional, `Quit:(x = 1)`, is spaced normally.
+- **Kept as written:** the arguments of macro calls (`$$$ERROR($$$GeneralError,"x")`), because macros are expanded as text, and the bodies of `XData`, `Storage`, `Query` and of triggers and methods written in another language (SQL, Python, ...). Their headers and keywords are still formatted.
+- **Line width:** a method signature that exceeds `printWidth` puts one parameter per line. The example above is formatted with the default width of 80; with `printWidth: 100` the `Greet` signature fits on one line.
+
 ## Limitations
 
 - Only class definition files (`.cls`, UDL format) are supported. Routines and include files (`.mac`, `.int`, `.inc`) are not.
-- Control-flow blocks (`If`, `For`, `Try`, ...) always keep the opening brace on the same line. `objectScriptBraceStyle` only affects class and member declarations: `next-line` (default) follows the InterSystems documentation, `same-line` gives `ClassMethod Run() {`.
-- Binary operators are surrounded by spaces, and the arguments of function calls and subscripts get a space after each comma (`^Data(x + 1, "a")`). The exceptions are the concatenation `_`, pattern matches and the arguments of macro calls (`$$$ERROR($$$GeneralError,"x")`), which are kept as written because macros are expanded as text.
-- Postconditionals (`Quit:x=1 ...`), `For` ranges and timeouts are printed without added whitespace, because a space would end them. A postconditional that is entirely parenthesized, `Quit:(x = 1)`, is spaced like any other expression.
-- Subscripts are never broken across lines. Long lines are only wrapped at the commas of function arguments, unless `objectScriptBreakLongExpressions` is enabled, which also breaks parenthesized expressions after their operators. The InterSystems documentation allows line breaks within command arguments and parentheses but does not state the rule for operators, so the option is disabled by default: check the result with the compiler before enabling it.
-- The bodies of `XData`, `Storage` and `Query`, and of triggers and methods written in another language (SQL, Python, ...), are copied verbatim; their headers, their keywords and the position of the opening brace are still formatted. Triggers written in ObjectScript are formatted like methods.
 - Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them.
+- Subscripts are never broken across lines, and long lines are wrapped only at the commas of function arguments. `objectScriptBreakLongExpressions` also breaks parenthesized expressions after their operators, but it is disabled by default because the InterSystems documentation does not state the rule for operators: check the result with the compiler before enabling it.
 
 ## Editor integration
 
