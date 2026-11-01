@@ -7,11 +7,7 @@ All notable changes to this project are documented in this file. The format foll
 ### Changed
 
 - `tree-sitter-objectscript` is now installed from the npm registry (version `1.10.2`, the same grammar as before) instead of a GitHub archive. The registry package ships prebuilt binaries for Windows, macOS and Linux (x64 and arm64), so a C/C++ compiler and Python are no longer needed on those platforms and the install takes seconds instead of minutes.
-- The README installation steps use `npm install --save-dev prettier prettier-plugin-objectscript`.
-
-### Added
-
-- A workflow that publishes the package to npm when a `v*` tag is pushed.
+- The README installation steps install the plugin from a GitHub tag (`git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.1`). The plugin is not published to npm.
 
 ## [2.0.0] - 2026-10-19
 
