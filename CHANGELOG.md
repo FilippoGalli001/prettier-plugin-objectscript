@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.0.2] - 2026-11-01
+
+### Changed
+
+- Node.js 22 or newer is required (`engines.node` is `>=22`). With Node.js 18 and 20 the prebuilt binary of the `tree-sitter` runtime crashes when it is loaded, so npm compiles it from source, which fails without a C/C++ toolchain. With Node.js 22 and 24 the prebuilt binaries load and no compiler is needed.
+- The README installs the plugin from the `v2.0.2` tag.
+
 ## [2.0.1] - 2026-10-19
 
 ### Changed

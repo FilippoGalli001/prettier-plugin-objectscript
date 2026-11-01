@@ -66,12 +66,14 @@ Abbreviated commands are expanded, braces and indentation are normalized, and bi
 
 ## Requirements
 
-- Node.js 18.14 or newer;
+- Node.js 22 or newer;
 - npm;
 - Git (npm uses it to install the plugin from GitHub);
 - Prettier 3 (installed locally by the commands below).
 
 The ObjectScript parser, [`tree-sitter-objectscript`](https://www.npmjs.com/package/tree-sitter-objectscript), is installed automatically with prebuilt binaries for Windows, macOS and Linux (x64 and arm64), so no compiler is needed on those systems. It takes about 400 MB of disk space because it bundles the binaries of all platforms.
+
+The prebuilt binaries need Node.js 22 or newer. With Node.js 18 or 20 the prebuilt `tree-sitter` runtime crashes when it is loaded (observed on Windows), so npm compiles it from source instead, which requires the toolchain below.
 
 On other platforms (for example Linux with musl, such as Alpine), npm compiles the parser with [`node-gyp`](https://github.com/nodejs/node-gyp#installation), which requires a C/C++ build toolchain and Python 3:
 
@@ -92,10 +94,10 @@ If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or no
 2. Install the workspace-local copy of Prettier and this plugin:
 
    ```bash
-   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.1
+   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.2
    ```
 
-   The plugin is installed from GitHub. The `#v2.0.1` suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`. To upgrade, run the same command with the newer tag.
+   The plugin is installed from GitHub. The `#v2.0.2` suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`. To upgrade, run the same command with the newer tag.
 
 3. Create `.prettierrc` in the project root:
 
