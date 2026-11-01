@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>prettier-plugin-objectscript</title>
+  
+  <path d="M102 40 C 76 40 70 54 70 74 L 70 106 C 70 120 62 128 44 128 C 62 128 70 136 70 150 L 70 182 C 70 202 76 216 102 216" fill="none" stroke="#333695" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="120" y="73" width="84" height="22" rx="11" fill="#333695"/>
+  <rect x="154" y="117" width="70" height="22" rx="11" fill="#00B2A9"/>
+  <rect x="120" y="161" width="52" height="22" rx="11" fill="#333695"/>
+</svg>
