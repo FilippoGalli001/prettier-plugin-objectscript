@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-11-05
+
+### Added
+
+- Include files (`.inc`) are formatted with the routine grammar of `tree-sitter-objectscript`. The `ROUTINE` header and the preprocessor directives (`#Define`, `#Def1Arg`, `#IfDef`, `#If`, `#Include`, ...) are formatted; comments and lines of code are copied as written, with their indentation, because a command in column 1 of a routine becomes a label.
+- The Prettier parser `objectscript-include-parser`, chosen automatically for `.inc` files, and the VS Code language ID `objectscript-macros`.
+- `Macros.inc` fixture; the IRIS check also formats `CheckMac.inc` and runs code that uses its macros.
+
+### Changed
+
+- Directive names in `#If` branches that the grammar keeps as text get the same casing as the parsed directives (`#define` → `#Define`).
+- The class language no longer claims the VS Code language ID `objectscript`, which belongs to `.mac` routines: these were formatted with the class grammar.
+- The README installs the plugin from the `v2.1.0` tag; its examples cover `.cls` and `.inc` files.
+
 ## [2.0.3] - 2026-11-05
 
 ### Fixed

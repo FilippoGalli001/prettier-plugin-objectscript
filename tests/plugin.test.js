@@ -4,13 +4,17 @@ const fs = require("node:fs");
 const path = require("node:path");
 const prettier = require("prettier");
 const plugin = require("../index");
-const { objectScriptParser, getParseDiagnostics } = require("../src/parser");
+const {
+  objectScriptParser,
+  parserForFile,
+  getParseDiagnostics,
+} = require("../src/parser");
 
 const samplesDir = path.join(__dirname, "samples");
 const expectedDir = path.join(__dirname, "expected");
 const sampleFiles = fs
   .readdirSync(samplesDir)
-  .filter((file) => /\.(cls|int|mac)$/.test(file))
+  .filter((file) => /\.(cls|inc)$/.test(file))
   .sort();
 
 function expectedOutput(fileName) {
@@ -24,14 +28,14 @@ function expectedOutput(fileName) {
 
 async function format(code, options = {}) {
   return prettier.format(code, {
-    parser: "objectscript-parser",
+    parser: parserForFile(options.filepath || "").name,
     plugins: [plugin],
     ...options,
   });
 }
 
-function diagnostics(code) {
-  return getParseDiagnostics(objectScriptParser.parse(code));
+function diagnostics(code, fileName = "") {
+  return getParseDiagnostics(parserForFile(fileName).parser.parse(code));
 }
 
 test("formats every fixture without regressions", async (t) => {
@@ -40,8 +44,8 @@ test("formats every fixture without regressions", async (t) => {
       const input = fs.readFileSync(path.join(samplesDir, fileName), "utf8");
       const formatted = await format(input, { filepath: fileName });
       const formattedAgain = await format(formatted, { filepath: fileName });
-      const inputDiagnostics = diagnostics(input);
-      const outputDiagnostics = diagnostics(formatted);
+      const inputDiagnostics = diagnostics(input, fileName);
+      const outputDiagnostics = diagnostics(formatted, fileName);
 
       assert.equal(
         formattedAgain,
@@ -558,4 +562,32 @@ ${body}
   );
 
   assert.ok(formatted.includes(`\n${body}\n`), formatted);
+});
+
+test("include files: directives are formatted, code lines are kept as written", async () => {
+  const input = `ROUTINE Demo [Type=INC]
+  #define   Twice(%x) (%x*2)
+#ifdef Twice
+#def1arg Join(%a) $lb(%a)
+#endif
+  ; a comment
+ s x=1
+`;
+  // The parser is inferred from the extension, as with the CLI and VS Code.
+  const formatted = await prettier.format(input, {
+    plugins: [plugin],
+    filepath: "Demo.inc",
+  });
+
+  assert.equal(
+    formatted,
+    `ROUTINE Demo [Type=INC]
+#Define Twice(%x) (%x*2)
+#IfDef Twice
+#Def1Arg Join(%a) $lb(%a)
+#EndIf
+  ; a comment
+ s x=1
+`,
+  );
 });

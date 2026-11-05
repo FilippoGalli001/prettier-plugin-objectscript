@@ -550,13 +550,49 @@ function printOpaqueDirectiveText(node, options) {
     if (text.trim() === "") {
       output.push(hardline);
     } else if (/^\S/.test(text)) {
-      output.push(hardline, trim, text.trimEnd());
+      output.push(hardline, trim, canonicalDirective(text.trimEnd()));
     } else {
       const extra = indentWidth(text, options.tabWidth) - base;
-      output.push(hardline, " ".repeat(Math.max(0, extra)) + text.trim());
+      output.push(
+        hardline,
+        " ".repeat(Math.max(0, extra)) + canonicalDirective(text.trim()),
+      );
     }
   }
   return concat(output);
+}
+
+const DIRECTIVE_NAMES = {
+  define: "#Define",
+  def1arg: "#Def1Arg",
+  dim: "#Dim",
+  if: "#If",
+  ifdef: "#IfDef",
+  ifndef: "#IfNDef",
+  elseif: "#ElseIf",
+  else: "#Else",
+  endif: "#EndIf",
+  import: "#Import",
+  include: "#Include",
+  undef: "#UnDef",
+};
+
+// `#define X 1` in a line that the grammar keeps as text: the directive name
+// gets the same casing as in parsed directives, the rest stays as written.
+function canonicalDirective(text) {
+  return text.replace(
+    /^#([A-Za-z0-9]+)(?=\s|$)/,
+    (match, name) => DIRECTIVE_NAMES[name.toLowerCase()] || match,
+  );
+}
+
+// An opaque `#If` branch that holds only directives and `#;` comments, so
+// that it can be printed in column 1 of an include file.
+function isOpaqueDirectiveText(node) {
+  return node.text
+    .split("\n")
+    .slice(1)
+    .every((text) => text.trim() === "" || text.trim().startsWith("#"));
 }
 
 // `#If` / `#IfDef` / `#IfNDef` / `#Else` blocks: every directive and every
@@ -597,6 +633,39 @@ function hasForeignLanguage(node, endIndex, options) {
   const header = options.originalText.slice(node.startIndex, endIndex);
   const match = header.match(/\bLanguage\s*=\s*"?([A-Za-z]+)/i);
   return Boolean(match) && !/^(objectscript|cache)$/i.test(match[1]);
+}
+
+// Whether a top-level node of an include file holds only the `ROUTINE`
+// header or preprocessor directives, including the directives nested in
+// `#If` blocks. Commands, labels and comments are copied as written.
+function isDirectiveOnly(node) {
+  if (node.type === "ERROR" || node.isMissing) return false;
+  if (node.type === "routine_definition") return true;
+  if (node.type === "statement") {
+    return node.children.length > 0 && node.children.every(isDirectiveOnly);
+  }
+  if (node.type.startsWith("pound_if_special_case")) {
+    return isOpaqueDirectiveText(node);
+  }
+  if (!node.type.startsWith("pound_")) return false;
+  // The names, conditions and values of a directive are its own text.
+  return node.children.every((child) =>
+    child.type === "statement" || child.type.startsWith("pound_")
+      ? isDirectiveOnly(child)
+      : child.type !== "ERROR" && !child.isMissing,
+  );
+}
+
+// The source lines of a node, copied exactly, including the indentation of
+// its first line.
+function printSourceLines(node, options) {
+  const lineStart =
+    options.originalText.lastIndexOf("\n", node.startIndex - 1) + 1;
+  const prefix = options.originalText.slice(lineStart, node.startIndex);
+  const start = prefix.trim() === "" ? lineStart : node.startIndex;
+  return printLiteralLines(
+    options.originalText.slice(start, node.endIndex).trimEnd(),
+  );
 }
 
 // The command keyword as written (`i`, `If`, `IF`), so that
@@ -829,11 +898,21 @@ function printObjectScript(path, options, print) {
   }
 
   switch (node.type) {
-    case "source_file":
+    case "source_file": {
+      // In an include file only directives and comments are formatted:
+      // a line of code is copied as written, with its indentation, because
+      // a command in column 1 of a routine would become a label.
+      const sourceParts =
+        options.parser === "objectscript-include-parser"
+          ? node.children.map((child, i) =>
+              isDirectiveOnly(child) ? parts[i] : printSourceLines(child, options),
+            )
+          : parts;
       return concat([
-        printStatementsWithGaps(node.children, parts, options.originalText),
+        printStatementsWithGaps(node.children, sourceParts, options.originalText),
         hardline,
       ]);
+    }
 
     case "macro":
       return concat(parts);

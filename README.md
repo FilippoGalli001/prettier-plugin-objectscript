@@ -2,7 +2,7 @@
 
 <img src="docs/logo/logo-icon.png" alt="prettier-plugin-objectscript logo" width="96">
 
-An opinionated [Prettier 3](https://prettier.io/) plugin for InterSystems ObjectScript class files (`.cls`). Parsing is provided by the UDL grammar from [`tree-sitter-objectscript`](https://github.com/intersystems/tree-sitter-objectscript).
+An opinionated [Prettier 3](https://prettier.io/) plugin for InterSystems ObjectScript class files (`.cls`) and include files (`.inc`). Parsing is provided by the UDL and routine grammars of [`tree-sitter-objectscript`](https://github.com/intersystems/tree-sitter-objectscript).
 
 To get started, check the [requirements](#requirements) and follow the [installation](#installation) steps.
 
@@ -63,6 +63,7 @@ Abbreviated commands are expanded, braces and indentation are normalized, and bi
 - spaces around binary operators and after commas in arguments;
 - formatting for ObjectScript expressions, arguments, types and object references;
 - configurable brace position for class and member declarations (`next-line` by default);
+- preprocessor directives of include files (`#Define`, `#IfDef`, ...);
 - optional strict parsing;
 - regression tests that check the expected output, valid output syntax, idempotence and, with Docker, the behavior in InterSystems IRIS.
 
@@ -96,10 +97,10 @@ If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or no
 2. Install the workspace-local copy of Prettier and this plugin:
 
    ```bash
-   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.0.3
+   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.1.0
    ```
 
-   The plugin is installed from GitHub. The `#v2.0.3` suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`. To upgrade, run the same command with the newer tag.
+   The plugin is installed from GitHub. The `#v2.1.0` suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`. To upgrade, run the same command with the newer tag.
 
 3. Create `.prettierrc` in the project root:
 
@@ -126,11 +127,11 @@ If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or no
    npx prettier --write path/to/MyClass.cls
    ```
 
-6. Format or check all `.cls` files:
+6. Format or check all class and include files:
 
    ```bash
-   npx prettier --write "src/**/*.cls"
-   npx prettier --check "src/**/*.cls"
+   npx prettier --write "src/**/*.{cls,inc}"
+   npx prettier --check "src/**/*.{cls,inc}"
    ```
 
 A file is considered stable when formatting it a second time produces no further changes. The test suite verifies this idempotence for every fixture.
@@ -145,7 +146,7 @@ Commit `package.json`, `package-lock.json` and `.prettierrc`, so that everyone f
 src/Generated/**
 ```
 
-**In CI.** This GitHub Actions workflow (`.github/workflows/format.yml`) fails when a committed `.cls` file is not formatted:
+**In CI.** This GitHub Actions workflow (`.github/workflows/format.yml`) fails when a committed `.cls` or `.inc` file is not formatted:
 
 ```yaml
 name: Format
@@ -159,10 +160,10 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx prettier --check "**/*.cls"
+      - run: npx prettier --check "**/*.{cls,inc}"
 ```
 
-**Before each commit.** [husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) format the staged `.cls` files when you run `git commit`:
+**Before each commit.** [husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) format the staged `.cls` and `.inc` files when you run `git commit`:
 
 ```bash
 npm install --save-dev husky lint-staged
@@ -174,7 +175,7 @@ Replace the content of `.husky/pre-commit` with `npx lint-staged` and add to `pa
 ```json
 {
   "lint-staged": {
-    "*.cls": "prettier --write"
+    "*.{cls,inc}": "prettier --write"
   }
 }
 ```
@@ -206,17 +207,22 @@ The debugging options (`objectScriptDebug*`) are described in [CONTRIBUTING.md](
 
 ## Limitations
 
-- Only class definition files (`.cls`, UDL format) are supported. Routines and include files (`.mac`, `.int`, `.inc`) are not.
+- Class definition files (`.cls`, UDL format) and include files (`.inc`) are supported; routines (`.mac`, `.int`) are not yet.
+- In include files, only the `ROUTINE` header and the preprocessor directives are formatted. Comments and lines of code are copied as written, with their indentation, because a command in column 1 of a routine becomes a label.
 - Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them.
 - Subscripts are never broken across lines, and long lines are wrapped only at the commas of function arguments. `objectScriptBreakLongExpressions` also breaks parenthesized expressions after their operators, but it is disabled by default because the InterSystems documentation does not state the rule for operators: check the result with the compiler before enabling it.
 
 ## Editor integration
 
-The plugin works with the Prettier extension of VS Code. Once the plugin is installed and `.prettierrc` is configured, this `.vscode/settings.json` formats `.cls` files on save:
+The plugin works with the Prettier extension of VS Code. Once the plugin is installed and `.prettierrc` is configured, this `.vscode/settings.json` formats `.cls` and `.inc` files on save:
 
 ```json
 {
   "[objectscript-class]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[objectscript-macros]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true
   },

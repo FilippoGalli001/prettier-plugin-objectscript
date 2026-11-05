@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { objectScriptParser, getParseDiagnostics } = require("../src/parser");
+const { parserForFile, getParseDiagnostics } = require("../src/parser");
 
 const [inputFile, ...requestedTypes] = process.argv.slice(2);
 if (!inputFile) {
@@ -15,7 +15,7 @@ if (!inputFile) {
 
 const filePath = path.resolve(inputFile);
 const source = fs.readFileSync(filePath, "utf8");
-const root = objectScriptParser.parse(source);
+const root = parserForFile(filePath).parser.parse(source);
 const typeCounts = new Map();
 
 function printNode(node, depth = 0) {

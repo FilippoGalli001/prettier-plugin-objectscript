@@ -5,7 +5,10 @@
  *              and the printer used by Prettier.
  */
 
-const { objectScriptParser } = require("./src/parser");
+const {
+  objectScriptParser,
+  objectScriptIncludeParser,
+} = require("./src/parser");
 const { printObjectScript } = require("./src/printer");
 
 // Tells Prettier which files this plugin handles.
@@ -15,13 +18,21 @@ const languagesDef = [
     extensions: [".cls"],
     // Must match a key of `parsers` below.
     parsers: ["objectscript-parser"],
-    // Language IDs used by editors such as VS Code.
-    vscodeLanguageIds: ["objectscript", "cls", "objectscript-class"],
+    // Language ID of class files in the InterSystems VS Code extension
+    // (`objectscript` is the ID of `.mac` routines, which are not supported).
+    vscodeLanguageIds: ["objectscript-class"],
+  },
+  {
+    name: "ObjectScript Include",
+    extensions: [".inc"],
+    parsers: ["objectscript-include-parser"],
+    vscodeLanguageIds: ["objectscript-macros"],
   },
 ];
 
 const parsers = {
   "objectscript-parser": objectScriptParser,
+  "objectscript-include-parser": objectScriptIncludeParser,
 };
 
 // "objectscript-ast" is the `astFormat` declared by the parser.

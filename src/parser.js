@@ -1,13 +1,20 @@
 /**
  * @file parser.js
- * @description ObjectScript parser based on the Tree-sitter UDL grammar.
+ * @description ObjectScript parsers based on the Tree-sitter grammars: UDL
+ *              for class files, the routine grammar for include files.
  */
 
 const Parser = require("tree-sitter");
-const ObjectScript = require("tree-sitter-objectscript/udl");
+const ObjectScript = require("tree-sitter-objectscript");
 
-const parser = new Parser();
-parser.setLanguage(ObjectScript);
+function createTreeSitterParser(language) {
+  const parser = new Parser();
+  parser.setLanguage(language);
+  return parser;
+}
+
+const udlParser = createTreeSitterParser(ObjectScript.objectscript_udl);
+const routineParser = createTreeSitterParser(ObjectScript.objectscript_routine);
 
 function getParseDiagnostics(rootNode, limit = 100) {
   const diagnostics = [];
@@ -45,23 +52,42 @@ function createParseError(diagnostics) {
   return error;
 }
 
-const objectScriptParser = {
-  parse(text, options = {}) {
-    // The grammar emits ERROR nodes for "\r\n" after an argumentless command
-    // (e.g. "Quit\r\n"). Prettier already normalizes to "\n"; this covers direct use.
-    const tree = parser.parse(text.replace(/\r\n?/g, "\n"));
-    const rootNode = tree.rootNode;
+function createPrettierParser(treeSitterParser) {
+  return {
+    parse(text, options = {}) {
+      // The grammar emits ERROR nodes for "\r\n" after an argumentless command
+      // (e.g. "Quit\r\n"). Prettier already normalizes to "\n"; this covers direct use.
+      const tree = treeSitterParser.parse(text.replace(/\r\n?/g, "\n"));
+      const rootNode = tree.rootNode;
 
-    if (options.objectScriptStrictParsing) {
-      const diagnostics = getParseDiagnostics(rootNode);
-      if (diagnostics.length > 0) throw createParseError(diagnostics);
-    }
+      if (options.objectScriptStrictParsing) {
+        const diagnostics = getParseDiagnostics(rootNode);
+        if (diagnostics.length > 0) throw createParseError(diagnostics);
+      }
 
-    return rootNode;
-  },
-  astFormat: "objectscript-ast",
-  locStart: (node) => node.startIndex,
-  locEnd: (node) => node.endIndex,
+      return rootNode;
+    },
+    astFormat: "objectscript-ast",
+    locStart: (node) => node.startIndex,
+    locEnd: (node) => node.endIndex,
+  };
+}
+
+// Class definition files (`.cls`).
+const objectScriptParser = createPrettierParser(udlParser);
+// Include files (`.inc`): macro definitions and preprocessor directives.
+const objectScriptIncludeParser = createPrettierParser(routineParser);
+
+// Prettier parser name and parser for a file, chosen by its extension.
+function parserForFile(filePath) {
+  return /\.inc$/i.test(filePath)
+    ? { name: "objectscript-include-parser", parser: objectScriptIncludeParser }
+    : { name: "objectscript-parser", parser: objectScriptParser };
+}
+
+module.exports = {
+  objectScriptParser,
+  objectScriptIncludeParser,
+  parserForFile,
+  getParseDiagnostics,
 };
-
-module.exports = { objectScriptParser, getParseDiagnostics };

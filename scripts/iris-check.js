@@ -21,6 +21,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const prettier = require("prettier");
 const plugin = require("../index");
+const { parserForFile } = require("../src/parser");
 
 const IMAGE = process.env.IRIS_IMAGE || "intersystems/iris-community:latest-cd";
 const KEEP = process.argv.includes("--keep");
@@ -59,9 +60,9 @@ async function writeVariants(tmp) {
       for (const file of fs.readdirSync(from)) {
         const text = fs.readFileSync(path.join(from, file), "utf8");
         const output =
-          options && file.endsWith(".cls")
+          options && /\.(cls|inc)$/.test(file)
             ? await prettier.format(text, {
-                parser: "objectscript-parser",
+                parser: parserForFile(file).name,
                 plugins: [plugin],
                 filepath: file,
                 ...options,

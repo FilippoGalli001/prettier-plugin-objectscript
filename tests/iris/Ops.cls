@@ -77,6 +77,7 @@ ClassMethod Run() As %Status
 	s name="^CheckOps"
 	w "indirect:",@name@(a-6)+1,!
 	x ("(p) w ""xecute:"",p+1,!",a+1):a>0
+	w "inc:",$$$Sum3(1,2,3),",",$$$HasTwice,",",$$$Mode,",",$ll($$$List(a,b,c)),",",$$$Long(a,b),!
 	w "run:complete",!
 	q $$$OK
 }

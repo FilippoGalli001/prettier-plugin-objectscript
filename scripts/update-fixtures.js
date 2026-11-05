@@ -4,36 +4,36 @@ const fs = require("fs");
 const path = require("path");
 const prettier = require("prettier");
 const plugin = require("../index");
-const { objectScriptParser, getParseDiagnostics } = require("../src/parser");
+const { parserForFile, getParseDiagnostics } = require("../src/parser");
 
 const samplesDir = path.resolve(__dirname, "../tests/samples");
 const expectedDir = path.resolve(__dirname, "../tests/expected");
 
-function diagnostics(source) {
-  return getParseDiagnostics(objectScriptParser.parse(source));
+function diagnostics(source, file) {
+  return getParseDiagnostics(parserForFile(file).parser.parse(source));
 }
 
 async function main() {
   fs.mkdirSync(expectedDir, { recursive: true });
   const files = fs
     .readdirSync(samplesDir)
-    .filter((file) => /\.(cls|int|mac)$/.test(file))
+    .filter((file) => /\.(cls|inc)$/.test(file))
     .sort();
 
   for (const file of files) {
     const input = fs.readFileSync(path.join(samplesDir, file), "utf8");
     const output = await prettier.format(input, {
-      parser: "objectscript-parser",
+      parser: parserForFile(file).name,
       plugins: [plugin],
       filepath: file,
     });
     const outputAgain = await prettier.format(output, {
-      parser: "objectscript-parser",
+      parser: parserForFile(file).name,
       plugins: [plugin],
       filepath: file,
     });
-    const inputDiagnostics = diagnostics(input);
-    const outputDiagnostics = diagnostics(output);
+    const inputDiagnostics = diagnostics(input, file);
+    const outputDiagnostics = diagnostics(output, file);
 
     if (output !== outputAgain) {
       throw new Error(

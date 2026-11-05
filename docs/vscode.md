@@ -47,6 +47,10 @@ The recommended integration uses the official Prettier extension together with t
        "editor.defaultFormatter": "esbenp.prettier-vscode",
        "editor.formatOnSave": true
      },
+     "[objectscript-macros]": {
+       "editor.defaultFormatter": "esbenp.prettier-vscode",
+       "editor.formatOnSave": true
+     },
      "prettier.requireConfig": true
    }
    ```
@@ -71,7 +75,7 @@ If formatting is not available:
 1. verify that the workspace is trusted;
 2. run `npm install` in the workspace root;
 3. verify that `.prettierrc` contains `"plugins": ["prettier-plugin-objectscript"]`;
-4. check that the current language mode is `ObjectScript Class` (`objectscript-class`);
+4. check that the current language mode is `ObjectScript Class` (`objectscript-class`) or, for `.inc` files, `ObjectScript Include` (`objectscript-macros`);
 5. run **Developer: Reload Window**;
 6. inspect **View → Output → Prettier** for module-resolution errors;
 7. if the Prettier extension stops or reports a crash when it loads the plugin, check **Help → About**: the Node.js version listed there is the one VS Code uses to run extensions, and like the command line it must be 22 or newer. Otherwise, update VS Code.
