@@ -4,14 +4,15 @@
  * Checks, against a real InterSystems IRIS instance, that formatting does not
  * change what the code does.
  *
- * The fixtures in tests/samples and the executable class in tests/iris are
- * compiled as written and after being formatted with several option sets, in
- * a throwaway IRIS Community container. The compilation errors of every
- * variant must match those of the original files, and the output of
- * Check.Ops.Run() must be identical.
+ * The fixtures in tests/samples and the executable class (Ops.cls), include
+ * file (CheckMac.inc) and routine (CheckRtn.mac) in tests/iris are compiled
+ * as written and after being formatted with several option sets, in a
+ * throwaway IRIS Community container. The compilation errors of every variant
+ * must match those of the original files, and the output of Check.Ops.Run()
+ * and ^CheckRtn must be identical.
  *
  * Requires Docker. Usage: npm run test:iris [-- --keep] [-- --verbose]
- *   --verbose    also prints the output of Check.Ops.Run()
+ *   --verbose    also prints the output of Check.Ops.Run() and ^CheckRtn
  *   IRIS_IMAGE   image to use (default intersystems/iris-community:latest-cd)
  */
 
@@ -60,7 +61,7 @@ async function writeVariants(tmp) {
       for (const file of fs.readdirSync(from)) {
         const text = fs.readFileSync(path.join(from, file), "utf8");
         const output =
-          options && /\.(cls|inc)$/.test(file)
+          options && /\.(cls|inc|mac)$/.test(file)
             ? await prettier.format(text, {
                 parser: parserForFile(file).name,
                 plugins: [plugin],
@@ -101,6 +102,9 @@ function irisScript() {
       `Try { Do ##class(Check.Ops).Run() } Catch ex { Write "RUNERR: ",ex.DisplayString(),! }`,
       `Do $SYSTEM.OBJ.Delete("Check.Ops","-d")`,
       `Do ##class(%Routine).Delete("CheckMac.INC")`,
+      `Set sc=$SYSTEM.OBJ.Load("/tmp/v/ops_${variant}/CheckRtn.mac","ck-d/displayerror")`,
+      `Try { Do ^CheckRtn } Catch ex { Write "RUNERR: ",ex.DisplayString(),! }`,
+      `Do ##class(%Routine).Delete("CheckRtn.MAC")`,
     );
   }
   lines.push("Halt");
@@ -182,7 +186,7 @@ async function main() {
     let failures = 0;
     const baseFixtures = normalize(found["FIXTURES orig"] || "");
     const baseRun = found["RUN orig"] || "";
-    if (!baseRun.includes("run:complete")) {
+    if (!baseRun.includes("run:complete") || !baseRun.includes("rtn:complete")) {
       log(`The original Check.Ops did not run to completion:\n${baseRun}`);
       failures++;
     } else if (VERBOSE) {

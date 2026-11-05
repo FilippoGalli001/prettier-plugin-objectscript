@@ -1,0 +1,41 @@
+ROUTINE CheckRtn
+CheckRtn ; executable check of the routine formatter: its output must not change
+ n i,x,y,s,list
+ s x=0 f i=1:1:5 s x=x+i
+ w "for:",x,!
+ s y=0 f  s y=y+1 q:y>3
+ w "forq:",y,!
+ i x>10 d
+ . s y=y*2
+ . w "dot:",y,!
+ i x<0 d  w "never",!
+ . w "never",!
+ s s=$$Sum(2,3) w "fn:",s,!
+ d Proc(4)
+ w "text:",$p($t(Data+1),";;",2),",",$p($t(Data+2),";;",2),!
+ w "self:",$$Self(),!
+ s x=1 i x=1 s y=1,firstLongVariableName=2,secondLongVariableName=3,thirdLongVariableName=4 w "one-line:",y,!
+ s x=0 i x=1 s y=9,firstLongVariableName=2,secondLongVariableName=3,thirdLongVariableName=4 w "never",!
+ w "after:",x,!
+ s x=5 g:x=5 Skip
+ w "never",!
+Skip w "goto:",x,!
+ s x=0 q:x=1  w "postq:",x,!
+ s list=$lb(1,2,
+   3)
+ w "multi:",$ll(list),!
+ w "count:",$$Count(),!
+ w "rtn:complete",!
+ q
+Sum(a,b) q a+b
+Proc(n) public {
+ s total=0
+ for i=1:1:n { s total=total+i }
+ w "proc:",total,!
+}
+Self() q $t(+0)
+Count() n c s c=0 f  s c=c+1 q:c=3
+ q c
+Data ; data lines read with $TEXT
+ ;;alpha
+ ;;beta

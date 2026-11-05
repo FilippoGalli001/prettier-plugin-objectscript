@@ -8,6 +8,7 @@
 const {
   objectScriptParser,
   objectScriptIncludeParser,
+  objectScriptRoutineParser,
 } = require("./src/parser");
 const { printObjectScript } = require("./src/printer");
 
@@ -18,9 +19,20 @@ const languagesDef = [
     extensions: [".cls"],
     // Must match a key of `parsers` below.
     parsers: ["objectscript-parser"],
-    // Language ID of class files in the InterSystems VS Code extension
-    // (`objectscript` is the ID of `.mac` routines, which are not supported).
+    // Language IDs of the InterSystems VS Code extension.
     vscodeLanguageIds: ["objectscript-class"],
+  },
+  {
+    name: "ObjectScript Routine",
+    extensions: [".mac"],
+    parsers: ["objectscript-routine-parser"],
+    vscodeLanguageIds: ["objectscript"],
+  },
+  {
+    name: "ObjectScript INT",
+    extensions: [".int"],
+    parsers: ["objectscript-routine-parser"],
+    vscodeLanguageIds: ["objectscript-int"],
   },
   {
     name: "ObjectScript Include",
@@ -33,6 +45,7 @@ const languagesDef = [
 const parsers = {
   "objectscript-parser": objectScriptParser,
   "objectscript-include-parser": objectScriptIncludeParser,
+  "objectscript-routine-parser": objectScriptRoutineParser,
 };
 
 // "objectscript-ast" is the `astFormat` declared by the parser.

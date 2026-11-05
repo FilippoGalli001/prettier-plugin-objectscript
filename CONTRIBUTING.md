@@ -62,7 +62,9 @@ For every fixture the suite verifies:
 `npm run test:iris` starts a throwaway [InterSystems IRIS Community](https://hub.docker.com/r/intersystems/iris-community) container (Docker is required, the first run downloads about 3.5 GB) and checks that formatting does not change what the code does:
 
 1. the fixtures in `tests/samples` are compiled as written and after formatting with `next-line`, `same-line` and `objectScriptBreakLongExpressions`; the compilation messages must be the same (some fixtures use classes that do not exist in a clean IRIS, so only differences count);
-2. `tests/iris/Ops.cls` is executable: `Check.Ops.Run()` must print exactly the same output before and after formatting.
+2. `tests/iris/Ops.cls` and `tests/iris/CheckRtn.mac` are executable, and `tests/iris/CheckMac.inc` defines macros they use: `Check.Ops.Run()` and `^CheckRtn` must print exactly the same output before and after formatting. Pass `-- --verbose` to print it.
+
+`npm run test:iris:routines` checks the routine formatter on real code: it exports the `.int` and `.inc` routines that ship with IRIS (about 250 files), formats them and compiles every `.int` routine as written and formatted. Formatting must be idempotent, add no parse errors, keep the number of lines and the labels on the same lines, and give the same compilation errors. It takes about ten minutes.
 
 Set `IRIS_IMAGE` to use another image. Pass `-- --keep` to keep the container for inspection.
 

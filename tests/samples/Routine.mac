@@ -1,0 +1,36 @@
+ROUTINE Routine
+ ; Header comment, kept as written.
+#include %occStatus
+#define Twice(%x) (%x*2)
+
+Routine ; entry point
+ q
+Start(a,b) public {
+ s x=a+b
+ if x>1 { w "big" } else { w "small" }
+ if x>2 {
+ w "bigger"
+ }
+Inner s y=1
+ q x
+}
+Tag s z=1 w z,!
+ i z d
+ . s z=z+1
+Loop . w z q:z>5  s z=z+1 g Loop
+ . w z
+ q
+Ext(n) s r=n*2 q r
+; column one comment
+ // slash comment
+ #; hash comment
+Multi n a,b,c,
+   d
+ s list=$lb(1, ; first
+   2)
+ i x /* inline */ s y=1
+ f  d  q:x>3  s x=x+1
+ q
+Fn() q 1
+Data ;;data line
+ ;;  second line

@@ -77,17 +77,25 @@ function createPrettierParser(treeSitterParser) {
 const objectScriptParser = createPrettierParser(udlParser);
 // Include files (`.inc`): macro definitions and preprocessor directives.
 const objectScriptIncludeParser = createPrettierParser(routineParser);
+// Routines (`.mac`, `.int`). Same grammar as include files, but their code
+// is formatted.
+const objectScriptRoutineParser = createPrettierParser(routineParser);
 
 // Prettier parser name and parser for a file, chosen by its extension.
 function parserForFile(filePath) {
-  return /\.inc$/i.test(filePath)
-    ? { name: "objectscript-include-parser", parser: objectScriptIncludeParser }
-    : { name: "objectscript-parser", parser: objectScriptParser };
+  if (/\.inc$/i.test(filePath)) {
+    return { name: "objectscript-include-parser", parser: objectScriptIncludeParser };
+  }
+  if (/\.(mac|int)$/i.test(filePath)) {
+    return { name: "objectscript-routine-parser", parser: objectScriptRoutineParser };
+  }
+  return { name: "objectscript-parser", parser: objectScriptParser };
 }
 
 module.exports = {
   objectScriptParser,
   objectScriptIncludeParser,
+  objectScriptRoutineParser,
   parserForFile,
   getParseDiagnostics,
 };

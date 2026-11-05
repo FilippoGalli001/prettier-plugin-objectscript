@@ -14,11 +14,13 @@ const {
       line,
       literalline,
       breakParent,
+      dedent,
       markAsRoot,
       softline,
       trim,
     },
     utils: { removeLines },
+    printer: { printDocToString },
   },
 } = require("prettier");
 
@@ -208,9 +210,22 @@ function printSystemFunction(path, node, parts, options) {
   const output = [];
   const compact = inSpaceSensitiveContext(path);
   node.children.forEach((child, index) => {
+    const next = node.children[index + 1];
     if (child.type === ",") {
       output.push(",");
-      if (node.children[index + 1]?.type !== "," && !compact) output.push(line);
+      if (
+        next &&
+        isLineComment(next) &&
+        next.startPosition.row === child.endPosition.row
+      ) {
+        // A comment after the comma stays on its line.
+        output.push(" ");
+      } else if (next?.type !== "," && !compact) {
+        output.push(line);
+      }
+    } else if (isLineComment(child)) {
+      // Nothing may follow a line comment on its line.
+      output.push(parts[index], hardline);
     } else {
       output.push(parts[index]);
     }
@@ -609,7 +624,14 @@ function printDirectiveBlock(node, parts, options) {
       );
     }
     if (DIRECTIVES[child.type]) {
-      output.push(DIRECTIVES[child.type]);
+      // In a routine, a block written in column 1 keeps its directives there.
+      const columnOne =
+        i > 0 &&
+        options.parser === "objectscript-routine-parser" &&
+        node.startPosition.column === 0;
+      output.push(
+        columnOne ? concat([trim, DIRECTIVES[child.type]]) : DIRECTIVES[child.type],
+      );
     } else if (child.type.startsWith("pound_if_special_case")) {
       output.push(printOpaqueDirectiveText(child, options));
     } else if (child.type === "expression") {
@@ -668,6 +690,78 @@ function printSourceLines(node, options) {
   );
 }
 
+// A routine (`.mac`, `.int`): the `ROUTINE` header, then the lines of code,
+// indented. Labels, procedures and whatever was written in column 1 stay in
+// column 1, because an indented label is read as a command and a command in
+// column 1 as a label.
+function printRoutineFile(node, parts, options) {
+  const output = [];
+  let body = node.children;
+  let bodyParts = parts;
+  if (node.children[0]?.type === "routine_definition") {
+    const header = node.children[0];
+    output.push(rawNodeText(header, options));
+    body = node.children.slice(1);
+    bodyParts = parts.slice(1);
+    if (body.length > 0) {
+      const gap = body[0].startPosition.row - header.endPosition.row;
+      for (let i = 1; i < gap; i++) output.push(hardline);
+    }
+  }
+  if (body.length > 0) {
+    output.push(
+      indent(
+        concat([
+          output.length > 0 ? hardline : "",
+          printStatementsWithGaps(body, bodyParts, options.originalText, true),
+        ]),
+      ),
+    );
+  }
+  output.push(hardline);
+  return concat(output);
+}
+
+// `Label(a, b) public { ... }`: the label and its formal parameters are kept
+// as written; the body is indented like the rest of the routine and the
+// closing brace goes back to column 1.
+function printProcedure(node, parts, options) {
+  const openIdx = node.children.findIndex((c) => c.type === "{");
+  const closeIdx = node.children.findLastIndex((c) => c.type === "}");
+  if (openIdx === -1 || closeIdx <= openIdx) {
+    return printLiteralLines(rawNodeText(node, options));
+  }
+  const open = node.children[openIdx];
+  const header = options.originalText
+    .slice(node.startIndex, open.startIndex)
+    .trim();
+  const bodyNodes = node.children.slice(openIdx + 1, closeIdx);
+  const bodyParts = parts.slice(openIdx + 1, closeIdx);
+  // When the brace is on its own line (often after a comment), it stays there.
+  const braceOnOwnLine = options.originalText
+    .slice(node.children[openIdx - 1]?.endIndex ?? node.startIndex, open.startIndex)
+    .includes("\n");
+  const output = [header, braceOnOwnLine ? concat([hardline, "{"]) : " {"];
+  if (bodyNodes.length > 0) {
+    // A comment right after the brace stays on its line.
+    // The procedure is printed in column 1 (dedented): its body is indented
+    // again.
+    output.push(
+      indent(
+        concat([
+          bodyNodes[0].startPosition.row === open.endPosition.row ? " " : hardline,
+          printStatementsWithGaps(bodyNodes, bodyParts, options.originalText, true),
+        ]),
+      ),
+    );
+  }
+  output.push(hardline, "}");
+  for (let i = closeIdx + 1; i < node.children.length; i++) {
+    output.push(" ", parts[i]);
+  }
+  return concat(output);
+}
+
 // The command keyword as written (`i`, `If`, `IF`), so that
 // `objectScriptExpandCommands: false` also applies to block commands.
 function keywordAsWritten(child, options, fallback) {
@@ -675,23 +769,96 @@ function keywordAsWritten(child, options, fallback) {
   return options.originalText.slice(child.startIndex, child.endIndex);
 }
 
-function printStatementsWithGaps(nodes, parts, originalText) {
+// In a routine, a line that starts in column 1 is a label (or a comment or
+// directive written there): with `keepColumnOne` such nodes stay in column 1
+// and every other line is indented.
+// Its continuation lines (a procedure, a block comment) are dedented too,
+// except in a directive block, whose nested code must stay indented.
+function inColumnOne(part, node) {
+  const isDirective =
+    node.type === "statement" &&
+    node.children.some((child) => child.type.startsWith("pound_"));
+  return concat([trim, isDirective ? part : dedent(part)]);
+}
+
+// In a routine the line numbers are part of the behavior: `$TEXT(Label+n)`
+// reads source lines (legacy code keeps data in `;;` comment lines) and
+// errors report `Label+n^Routine`. Its blank lines are kept, and comment
+// lines are copied exactly, with their indentation. Set for each file.
+let preserveLines = false;
+let printOptions = {};
+
+// A node of a routine formatted without new line breaks, if it keeps the
+// number of lines it has in the source; otherwise (a command continued on
+// the next line, for example) it is copied as written.
+function keepLineCount(part, node, originalText) {
+  const raw = originalText.slice(node.startIndex, node.endIndex).trimEnd();
+  const sourceLines = raw.split("\n").length;
+  const flat = removeLines(part);
+  const { formatted } = printDocToString(flat, {
+    printWidth: printOptions.printWidth,
+    tabWidth: printOptions.tabWidth,
+    useTabs: printOptions.useTabs,
+  });
+  return formatted.trimEnd().split("\n").length === sourceLines
+    ? flat
+    : printVerbatimLines(raw);
+}
+
+// Lines copied exactly: the lines after the first keep their own
+// indentation, whatever the indentation of the enclosing block.
+function printVerbatimLines(text) {
+  return concat(
+    text
+      .split("\n")
+      .map((lineText, i) =>
+        i === 0 ? lineText : concat([literalline, trim, lineText]),
+      ),
+  );
+}
+
+function printStatementsWithGaps(nodes, parts, originalText, keepColumnOne = false) {
   const validItems = [];
   nodes.forEach((child, index) => {
     if (child.type === "ERROR") {
-      const rawErrorText = originalText.slice(child.startIndex, child.endIndex);
+      let rawErrorText = originalText.slice(child.startIndex, child.endIndex);
+      // The last node can end with the final newline of the file, which the
+      // caller adds again.
+      if (index === nodes.length - 1) rawErrorText = rawErrorText.trimEnd();
       if (rawErrorText.trim()) {
-        validItems.push({ node: child, part: rawErrorText });
+        validItems.push({
+          node: child,
+          part:
+            keepColumnOne && child.startPosition.column === 0
+              ? inColumnOne(rawErrorText, child)
+              : rawErrorText,
+        });
       }
       return;
     }
-    const part = parts[index];
+    let part = parts[index];
     if (
       part === undefined ||
       part === null ||
       (typeof part === "string" && part.trim() === "")
     )
       return;
+    const lineStart = originalText.lastIndexOf("\n", child.startIndex - 1) + 1;
+    const startsLine =
+      originalText.slice(lineStart, child.startIndex).trim() === "";
+    if (preserveLines && startsLine && child.type.includes("comment")) {
+      part = concat([
+        trim,
+        printVerbatimLines(
+          originalText.slice(lineStart, child.endIndex).trimEnd(),
+        ),
+      ]);
+    } else if (preserveLines) {
+      part = keepLineCount(part, child, originalText);
+      if (keepColumnOne && child.startPosition.column === 0) {
+        part = inColumnOne(part, child);
+      }
+    }
     validItems.push({ node: child, part: part });
   });
 
@@ -710,7 +877,16 @@ function printStatementsWithGaps(nodes, parts, originalText) {
 
     if (i < validItems.length - 1) {
       const next = validItems[i + 1];
-      const endRow = current.node.endPosition.row;
+      // Some nodes end with the newline of their last line (dotted blocks):
+      // their last row is the one of their last non-blank character.
+      const endRow =
+        current.node.startPosition.row +
+        (
+          originalText
+            .slice(current.node.startIndex, current.node.endIndex)
+            .trimEnd()
+            .match(/\n/g) || []
+        ).length;
       const startRow = next.node.startPosition.row;
       const diff = startRow - endRow;
 
@@ -779,6 +955,8 @@ function printStatementsWithGaps(nodes, parts, originalText) {
         }
       } else if (diff === 1) {
         result.push(hardline);
+      } else if (preserveLines) {
+        result.push(concat(Array(diff).fill(hardline)));
       } else {
         result.push(concat([hardline, hardline]));
       }
@@ -885,6 +1063,8 @@ function printGenericCommand(keywordRaw, path, parts, node, options) {
 function printObjectScript(path, options, print) {
   const node = path.getValue();
   traceNode(node, options);
+  preserveLines = options.parser === "objectscript-routine-parser";
+  printOptions = options;
 
   if (ATOMIC_TYPES.has(node.type)) {
     return options.originalText.slice(node.startIndex, node.endIndex).trimEnd();
@@ -899,6 +1079,9 @@ function printObjectScript(path, options, print) {
 
   switch (node.type) {
     case "source_file": {
+      if (options.parser === "objectscript-routine-parser") {
+        return printRoutineFile(node, parts, options);
+      }
       // In an include file only directives and comments are formatted:
       // a line of code is copied as written, with its indentation, because
       // a command in column 1 of a routine would become a label.
@@ -917,6 +1100,9 @@ function printObjectScript(path, options, print) {
     case "macro":
       return concat(parts);
 
+    case "procedure":
+      return printProcedure(node, parts, options);
+
     // A label must start in column 1: when indented it becomes a command.
     case "tag_statement":
       return concat([trim, rawNodeText(node, options)]);
@@ -930,15 +1116,19 @@ function printObjectScript(path, options, print) {
       if (node.children.some((c) => c.type === "ERROR")) {
         return rawNodeText(node, options);
       }
+      // `Label . Set x = 1`: a label before the dots stays in column 1.
+      const isBody = (c) => c.type !== "." && c.type !== "tag";
+      const tagNode = node.children.find((c) => c.type === "tag");
       const dots = node.children.filter((c) => c.type === ".");
-      const bodyNodes = node.children.filter((c) => c.type !== ".");
-      const bodyParts = parts.filter((_, i) => node.children[i].type !== ".");
+      const bodyNodes = node.children.filter(isBody);
+      const bodyParts = parts.filter((_, i) => isBody(node.children[i]));
       const bodyDoc = printStatementsWithGaps(
         bodyNodes,
         bodyParts,
         options.originalText,
       );
       return concat([
+        tagNode ? concat([trim, rawNodeText(tagNode, options), " "]) : "",
         join(" ", dots.map(() => ".")),
         bodyNodes.length > 0 ? " " : "",
         bodyDoc,

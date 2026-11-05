@@ -35,7 +35,21 @@ const SUBSCRIPT_OWNERS = new Set(["lvn", "gvn"]);
  * @returns {boolean}
  */
 function isLineComment(node) {
-  return node.type.includes("comment") && node.type !== "block_comment";
+  // An inline comment can also be a `/* ... */` comment, which code may
+  // follow on the same line.
+  return (
+    node.type.includes("comment") &&
+    node.type !== "block_comment" &&
+    !node.text.trimStart().startsWith("/*")
+  );
+}
+
+// Row of the last non-blank character of a node: some nodes (dotted blocks)
+// end with the newline of their last line.
+function lastRow(node) {
+  return (
+    node.startPosition.row + (node.text.trimEnd().match(/\n/g) || []).length
+  );
 }
 
 function isFullyParenthesized(postConditional) {
@@ -74,9 +88,18 @@ function inSpaceSensitiveContext(path) {
  * @returns {boolean}
  */
 function endsWithArgumentlessCommand(node) {
+  // The last command of the line can be nested: `For  Do  Quit:x` ends with
+  // the argumentless `Quit:x`.
   let current = node;
-  while (current && current.type === "statement") {
-    current = current.children[current.children.length - 1];
+  while (current) {
+    const last = current.children[current.children.length - 1];
+    const descend =
+      current.type === "statement" ||
+      current.type === "do_statement_after" ||
+      (current.type.startsWith("command_") &&
+        (last?.type === "statement" || last?.type === "do_statement_after"));
+    if (!descend) break;
+    current = last;
   }
   if (!current || !current.type.startsWith("command_")) return false;
   return current.children.every(
@@ -106,6 +129,23 @@ function joinWithCommas(parts, nodes) {
     const currType = nodes[i].type;
     const prevType = nodes[i - 1].type;
 
+    // Every line of a dotted block (`. Write x`) is a separate source line,
+    // and so is a comment on its own line after the block.
+    const afterCommands = [
+      "statement",
+      "do_statement_after",
+      "dotted_statement",
+    ].includes(prevType);
+    if (
+      currType === "dotted_statement" ||
+      (afterCommands &&
+        currType.includes("comment") &&
+        nodes[i].startPosition.row > lastRow(nodes[i - 1]))
+    ) {
+      result.push(dedentToRoot(concat([hardline, part])));
+      return;
+    }
+
     // Nothing may follow a line comment on its line.
     if (isLineComment(nodes[i - 1])) {
       if (currType === ",") {
@@ -117,15 +157,19 @@ function joinWithCommas(parts, nodes) {
     }
 
     // Commands nested in a legacy If/For/Do must stay on the same line:
-    // a line break would move them out of the outer command's scope.
-    if (currType === "statement") {
-      result.push(endsWithArgumentlessCommand(nodes[i - 1]) ? "  " : " ");
-      result.push(part);
+    // a line break would move them out of the outer command's scope. The
+    // grammar can also attach the next line (a label after a dotted block)
+    // as a nested command: that one keeps its own line.
+    if (
+      (currType === "statement" || currType === "do_statement_after") &&
+      nodes[i].startPosition.row > lastRow(nodes[i - 1])
+    ) {
+      result.push(dedentToRoot(concat([hardline, part])));
       return;
     }
-    // Every line of a dotted block (`. Write x`) is a separate source line.
-    if (currType === "dotted_statement") {
-      result.push(dedentToRoot(concat([hardline, part])));
+    if (currType === "statement" || currType === "do_statement_after") {
+      result.push(endsWithArgumentlessCommand(nodes[i - 1]) ? "  " : " ");
+      result.push(part);
       return;
     }
 

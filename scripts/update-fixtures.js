@@ -17,7 +17,7 @@ async function main() {
   fs.mkdirSync(expectedDir, { recursive: true });
   const files = fs
     .readdirSync(samplesDir)
-    .filter((file) => /\.(cls|inc)$/.test(file))
+    .filter((file) => /\.(cls|inc|mac|int)$/.test(file))
     .sort();
 
   for (const file of files) {

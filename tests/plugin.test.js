@@ -14,7 +14,7 @@ const samplesDir = path.join(__dirname, "samples");
 const expectedDir = path.join(__dirname, "expected");
 const sampleFiles = fs
   .readdirSync(samplesDir)
-  .filter((file) => /\.(cls|inc)$/.test(file))
+  .filter((file) => /\.(cls|inc|mac|int)$/.test(file))
   .sort();
 
 function expectedOutput(fileName) {
@@ -590,4 +590,59 @@ test("include files: directives are formatted, code lines are kept as written", 
  s x=1
 `,
   );
+});
+
+test("routines keep their lines, labels and comment lines", async () => {
+  const input = `ROUTINE Demo
+Demo ; entry
+
+
+ s x=1 w x
+ n a,b,
+   c
+Data ;;first
+   ;;  second
+Proc(n) public {
+ q n*2
+}
+`;
+  for (const filepath of ["Demo.mac", "Demo.int"]) {
+    // The parser is inferred from the extension, as with the CLI and VS Code.
+    const formatted = await prettier.format(input, {
+      plugins: [plugin],
+      filepath,
+    });
+    assert.equal(
+      formatted,
+      `ROUTINE Demo
+Demo ; entry
+
+
+  Set x = 1 Write x
+  n a,b,
+   c
+Data ;;first
+   ;;  second
+Proc(n) public {
+  Quit n * 2
+}
+`,
+    );
+  }
+});
+
+test("a /* */ comment does not end a legacy If", async () => {
+  const formatted = await format(
+    "Class Demo {\nMethod X(x) {\n i x /* why */ s y=1\n}\n}",
+  );
+
+  assert.match(formatted, /\n {4}If x \/\* why \*\/ Set y = 1\n/);
+});
+
+test("an argumentless command nested after Do keeps two spaces", async () => {
+  const formatted = await format(
+    "Class Demo {\nMethod X(x) {\n f  d  q:x>3  s x=x+1\n}\n}",
+  );
+
+  assert.match(formatted, /\n {4}For  Do  Quit:x>3  Set x = x \+ 1\n/);
 });

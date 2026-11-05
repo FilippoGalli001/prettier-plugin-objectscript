@@ -1,0 +1,36 @@
+ROUTINE Routine
+ ; Header comment, kept as written.
+#Include %occStatus
+#Define Twice(%x) (%x*2)
+
+Routine ; entry point
+  Quit
+Start(a,b) public {
+  Set x = a + b
+  if x>1 { w "big" } else { w "small" }
+  If x > 2 {
+    Write "bigger"
+  }
+Inner Set y = 1
+  Quit x
+}
+Tag Set z = 1 Write z, !
+  If z Do
+  . Set z = z + 1
+Loop . Write z Quit:z>5  Set z = z + 1 Goto Loop
+  . Write z
+  Quit
+Ext(n) Set r = n * 2 Quit r
+; column one comment
+ // slash comment
+ #; hash comment
+Multi n a,b,c,
+   d
+  Set list = $lb(1, ; first
+      2)
+  If x /* inline */ Set y = 1
+  For  Do  Quit:x>3  Set x = x + 1
+  Quit
+Fn() Quit 1
+Data ;;data line
+ ;;  second line

@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-11-05
+
+### Added
+
+- Routines (`.mac`, `.int`) are formatted with the routine grammar, through the parser `objectscript-routine-parser` (VS Code language IDs `objectscript` and `objectscript-int`). Their line numbers are part of the behavior (`$TEXT(Label+n)`, `Label+n^Routine` in errors), so formatting never adds, removes or joins lines: blank lines are kept, labels and whatever was in column 1 stay there, code is indented, comment lines are copied exactly. A command that cannot be formatted on its own lines (continued on the next line, or a block written on one line) is copied as written. Procedures (`Tag(a) public { }`) get an indented body and a closing brace in column 1; the formal parameters of labels are kept as written.
+- `npm run test:iris:routines` formats and compiles the routines that ship with IRIS (125 `.int` and 124 `.inc` files): formatting must be idempotent, add no parse errors, keep the lines and labels, and give the same compilation errors. It also runs in CI.
+- `tests/iris/CheckRtn.mac`, an executable routine run by `npm run test:iris` before and after formatting, and the `Routine.mac` fixture.
+
+### Fixed
+
+- A `/* ... */` comment between a legacy `If` and its command no longer moves the command to the next line, out of the `If` (since 2.0.3).
+- The commands after an argumentless `Do` (`For  Do  Quit:x  Set y = 1`) keep two spaces after an argumentless command and are never wrapped.
+- Line comments inside the arguments of system functions (`$lb(1, ; first`) no longer swallow the next argument.
+- A file ending with text the grammar cannot parse is idempotent (a blank line was added at each run).
+- A label written after a dotted block stays on its own line instead of being joined to the last dotted line.
+- A comment on its own line after a dotted block stays on its own line.
+
 ## [2.1.0] - 2026-11-05
 
 ### Added
