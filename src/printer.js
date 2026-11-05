@@ -13,14 +13,18 @@ const {
       group,
       line,
       literalline,
+      breakParent,
       markAsRoot,
       softline,
       trim,
     },
+    utils: { removeLines },
   },
 } = require("prettier");
 
 const {
+  isLineComment,
+  SUBSCRIPT_OWNERS,
   inSpaceSensitiveContext,
   endsWithArgumentlessCommand,
   printCommandArgs,
@@ -74,6 +78,12 @@ const COMMAND_MAP = {
   print: "Print",
   zbreak: "ZBreak",
   zload: "ZLoad",
+  zinsert: "ZInsert",
+  zprint: "ZPrint",
+  zquit: "ZQuit",
+  zremove: "ZRemove",
+  zsave: "ZSave",
+  ztrap: "ZTrap",
 };
 
 // Official ObjectScript command abbreviations. `h` is missing because it depends
@@ -107,9 +117,15 @@ const COMMAND_ABBREVIATIONS = {
   w: "write",
   x: "xecute",
   zb: "zbreak",
+  zi: "zinsert",
   zk: "zkill",
   zl: "zload",
   zn: "znspace",
+  zp: "zprint",
+  zq: "zquit",
+  zr: "zremove",
+  zs: "zsave",
+  zt: "ztrap",
   zw: "zwrite",
 };
 
@@ -252,6 +268,13 @@ function chainHead(node) {
 // expressions) is plain whitespace for ObjectScript.
 function isInsideParentheses(head) {
   const parent = head.parent;
+  // Subscripts (`^Data(a + b)`) are never broken across lines.
+  if (
+    parent?.type === "method_arg" &&
+    SUBSCRIPT_OWNERS.has(parent.parent?.parent?.type)
+  ) {
+    return false;
+  }
   return (
     parent?.type === "method_arg" ||
     parent?.type === "dollar_arg_pair" ||
@@ -456,6 +479,133 @@ function formatKeyword(keywordRaw, options, hasArguments = false) {
   }
 }
 
+// A bracketed list (`[a, b]`, `{"a": 1}`) whose entries can be followed by
+// line comments. The comma goes right after its value, before the comment,
+// and the next entry starts on a new line.
+function printBracketList(open, close, entries) {
+  const values = [];
+  const leading = [];
+  for (const entry of entries) {
+    if (entry.comment) {
+      if (values.length === 0) leading.push(entry.doc);
+      else values.at(-1).comments.push(entry.doc);
+    } else {
+      values.push({ doc: entry.doc, comments: [] });
+    }
+  }
+  if (values.length === 0 && leading.length === 0) return `${open}${close}`;
+
+  const body = [];
+  for (const comment of leading) body.push(comment, hardline);
+  values.forEach((value, i) => {
+    const isLast = i === values.length - 1;
+    body.push(value.doc);
+    if (!isLast) body.push(",");
+    for (const comment of value.comments) body.push(" ", comment);
+    if (value.comments.length > 0) {
+      body.push(isLast ? breakParent : hardline);
+    } else if (!isLast) {
+      body.push(line);
+    }
+  });
+  return group(
+    concat([open, indent(concat([softline, concat(body)])), softline, close]),
+  );
+}
+
+// Row of the last non-blank character of a node: some tokens end with the
+// newline and indentation of the following line.
+function lastContentRow(node, options) {
+  const raw = options.originalText.slice(node.startIndex, node.endIndex);
+  return node.startPosition.row + (raw.trimEnd().match(/\n/g) || []).length;
+}
+
+const DIRECTIVES = {
+  keyword_pound_if: "#If",
+  keyword_pound_ifdef: "#IfDef",
+  keyword_pound_ifndef: "#IfNDef",
+  keyword_pound_elseif: "#ElseIf",
+  keyword_pound_else: "#Else",
+  keyword_pound_endif: "#EndIf",
+  keyword_pound_define: "#Define",
+  keyword_pound_def1arg: "#Def1Arg",
+};
+
+// Some `#If` blocks are parsed as one opaque token holding the condition and
+// the lines of the first branch: the condition stays on the `#If` line and
+// each following line is copied, keeping its indentation relative to the
+// others. A line in column 1 is a label and stays in column 1.
+function printOpaqueDirectiveText(node, options) {
+  const lines = options.originalText
+    .slice(node.startIndex, node.endIndex)
+    .split("\n");
+  const condition = lines.shift().trim();
+  while (lines.length > 0 && lines.at(-1).trim() === "") lines.pop();
+  const indented = lines.filter((text) => /^[\t ]+\S/.test(text));
+  const base = Math.min(
+    ...indented.map((text) => indentWidth(text, options.tabWidth)),
+  );
+  const output = [condition];
+  for (const text of lines) {
+    if (text.trim() === "") {
+      output.push(hardline);
+    } else if (/^\S/.test(text)) {
+      output.push(hardline, trim, text.trimEnd());
+    } else {
+      const extra = indentWidth(text, options.tabWidth) - base;
+      output.push(hardline, " ".repeat(Math.max(0, extra)) + text.trim());
+    }
+  }
+  return concat(output);
+}
+
+// `#If` / `#IfDef` / `#IfNDef` / `#Else` blocks: every directive and every
+// statement on its own line, at the indentation of the block. Conditions are
+// kept as written, like macro arguments.
+function printDirectiveBlock(node, parts, options) {
+  const output = [];
+  node.children.forEach((child, i) => {
+    if (i > 0) {
+      const prev = node.children[i - 1];
+      const rows = child.startPosition.row - lastContentRow(prev, options);
+      output.push(
+        rows <= 0 ? " " : rows === 1 ? hardline : concat([hardline, hardline]),
+      );
+    }
+    if (DIRECTIVES[child.type]) {
+      output.push(DIRECTIVES[child.type]);
+    } else if (child.type.startsWith("pound_if_special_case")) {
+      output.push(printOpaqueDirectiveText(child, options));
+    } else if (child.type === "expression") {
+      output.push(rawNodeText(child, options));
+    } else {
+      output.push(parts[i]);
+    }
+  });
+  return concat(output);
+}
+
+// Text of a node split on its line breaks, copied exactly.
+function printLiteralLines(text) {
+  return join(literalline, text.split("\n"));
+}
+
+// `Language = sql` (or another non-ObjectScript language) in the header of
+// a member: its body is not ObjectScript, even when the grammar parses it as
+// such.
+function hasForeignLanguage(node, endIndex, options) {
+  const header = options.originalText.slice(node.startIndex, endIndex);
+  const match = header.match(/\bLanguage\s*=\s*"?([A-Za-z]+)/i);
+  return Boolean(match) && !/^(objectscript|cache)$/i.test(match[1]);
+}
+
+// The command keyword as written (`i`, `If`, `IF`), so that
+// `objectScriptExpandCommands: false` also applies to block commands.
+function keywordAsWritten(child, options, fallback) {
+  if (!child || !child.type.startsWith("keyword_")) return fallback;
+  return options.originalText.slice(child.startIndex, child.endIndex);
+}
+
 function printStatementsWithGaps(nodes, parts, originalText) {
   const validItems = [];
   nodes.forEach((child, index) => {
@@ -582,13 +732,37 @@ function printGenericCommand(keywordRaw, path, parts, node, options) {
   let postCondDoc = "";
   if (postCondIdx !== -1) postCondDoc = parts[postCondIdx];
 
-  const argsDoc = printCommandArgs(path, parts, node);
+  // Comments at the end of the command (`Halt // stop`) are not arguments:
+  // they follow the command after one space. Counting them as arguments
+  // turned an argumentless `h` (Halt) into `Hang`.
+  const trailing = new Set();
+  for (let i = node.children.length - 1; i > 0; i--) {
+    const child = node.children[i];
+    if (!child.type.includes("comment")) break;
+    const gap = options.originalText.slice(
+      node.children[i - 1].endIndex,
+      child.startIndex,
+    );
+    if (gap.includes("\n")) break;
+    trailing.add(i);
+  }
+
+  const argsDoc = printCommandArgs(path, parts, node, trailing);
   const keyword = formatKeyword(keywordRaw, options, argsDoc !== "");
 
   // --- Trailing comment recovery ---
   let trailingDoc = "";
-  if (node.children.length > 0) {
-    const lastChild = node.children[node.children.length - 1];
+  const lastIndex = node.children.length - 1 - trailing.size;
+  if (trailing.size > 0) {
+    // The spaces before a comment may belong to the previous node (after an
+    // argumentless command), so the comment is not copied with its gap.
+    trailingDoc = concat(
+      node.children
+        .slice(lastIndex + 1)
+        .map((child) => concat([" ", rawNodeText(child, options)])),
+    );
+  } else if (lastIndex >= 0) {
+    const lastChild = node.children[lastIndex];
 
     // Text after the last child (e.g. a comment) is not exposed as a node.
     if (lastChild.endIndex < node.endIndex) {
@@ -596,27 +770,43 @@ function printGenericCommand(keywordRaw, path, parts, node, options) {
       // Keep the original gap, not its trimmed version, to preserve the
       // alignment of the comment; whitespace-only gaps are dropped.
       if (gap.trim().length > 0) {
-        trailingDoc = gap;
+        trailingDoc = gap.trimEnd();
       }
     }
   }
   // -----------------------------------
 
+  // Commands nested in a legacy If/Else/For/Do without braces end their
+  // scope at the end of the line: the whole command stays on one line.
+  const hasNestedCommands = node.children.some(
+    (child) =>
+      child.type === "statement" || child.type === "do_statement_after",
+  );
+  const finish = (doc) => (hasNestedCommands ? removeLines(doc) : doc);
+
   // One space before the arguments; the trailing comment keeps its
   // original spacing.
   if (argsDoc) {
-    // `Do  Write x`: an argumentless Do needs two spaces before the command.
-    const separator = node.children.some(
-      (child) => child.type === "do_statement_after",
+    // `Do  Write x`, `If  Write x`: without arguments of its own, the command
+    // needs two spaces before the nested command.
+    const firstArg = node.children.find(
+      (child, i) =>
+        !trailing.has(i) &&
+        !child.type.startsWith("keyword_") &&
+        child.type !== "post_conditional" &&
+        !child.type.includes("whitespace"),
+    );
+    const separator = ["statement", "do_statement_after"].includes(
+      firstArg?.type,
     )
       ? "  "
       : " ";
-    return group(
-      concat([keyword, postCondDoc, separator, argsDoc, trailingDoc]),
+    return finish(
+      group(concat([keyword, postCondDoc, separator, argsDoc, trailingDoc])),
     );
   }
 
-  return group(concat([keyword, postCondDoc, trailingDoc]));
+  return finish(group(concat([keyword, postCondDoc, trailingDoc])));
 }
 
 // =================================================================
@@ -689,33 +879,26 @@ function printObjectScript(path, options, print) {
       );
 
     case "json_object_literal": {
-      const properties = [];
+      const entries = [];
       const legacyParts = [];
       node.children.forEach((child, i) => {
         if (["{", "}", ",", ":"].includes(child.type) || !parts[i]) return;
-        if (
-          child.type === "json_object_literal_pair" ||
-          child.type.includes("comment")
-        ) {
-          properties.push(parts[i]);
+        if (child.type.includes("comment")) {
+          entries.push({ doc: parts[i], comment: isLineComment(child) });
+        } else if (child.type === "json_object_literal_pair") {
+          entries.push({ doc: parts[i] });
         } else {
           legacyParts.push(parts[i]);
         }
       });
       for (let i = 0; i < legacyParts.length; i += 2) {
         if (legacyParts[i + 1]) {
-          properties.push(concat([legacyParts[i], ": ", legacyParts[i + 1]]));
+          entries.push({
+            doc: concat([legacyParts[i], ": ", legacyParts[i + 1]]),
+          });
         }
       }
-      if (properties.length === 0) return "{}";
-      return group(
-        concat([
-          "{",
-          indent(concat([softline, join(concat([",", line]), properties)])),
-          softline,
-          "}",
-        ]),
-      );
+      return printBracketList("{", "}", entries);
     }
     case "json_object_literal_pair": {
       const colonIndex = node.children.findIndex((child) => child.type === ":");
@@ -729,27 +912,29 @@ function printObjectScript(path, options, print) {
       ]);
     }
     case "json_array_literal": {
-      const elements = [];
-      node.children.forEach((child, i) => {
-        // Skip the brackets and commas of the original AST;
-        if (child.type !== "[" && child.type !== "]" && child.type !== ",") {
-          // only the values are kept.
-          if (parts[i]) {
-            elements.push(parts[i]);
+      const entries = [];
+      for (let i = 0; i < node.children.length; i++) {
+        const child = node.children[i];
+        if (["[", "]", ","].includes(child.type)) continue;
+        // A parenthesized expression (`[1, (x + 1)]`) is one value: the
+        // grammar exposes its parentheses as children of the array.
+        if (child.type === "(") {
+          const close = node.children.findIndex(
+            (other, j) => j > i && other.type === ")",
+          );
+          if (close !== -1) {
+            entries.push({ doc: concat(parts.slice(i, close + 1)) });
+            i = close;
+            continue;
           }
         }
-      });
-
-      if (elements.length === 0) return "[]";
-
-      return group(
-        concat([
-          "[",
-          indent(concat([softline, join(concat([",", line]), elements)])),
-          softline,
-          "]",
-        ]),
-      );
+        if (!parts[i]) continue;
+        entries.push({
+          doc: parts[i],
+          comment: child.type.includes("comment") && isLineComment(child),
+        });
+      }
+      return printBracketList("[", "]", entries);
     }
 
     case "set_target_list":
@@ -801,6 +986,11 @@ function printObjectScript(path, options, print) {
     case "command_merge":
     case "command_goto":
     case "command_halt_or_hang":
+    case "command_else":
+    case "command_ztrap":
+    case "command_zbreak":
+    case "print_statement":
+    case "z_file_commands":
       return printGenericCommand(
         options.originalText.slice(
           node.children[0].startIndex,
@@ -837,11 +1027,15 @@ function printObjectScript(path, options, print) {
       }
       return join(" ", parts);
     }
+    // A line break would end the postconditional, even a parenthesized one.
     case "post_conditional":
-      return concat(parts);
+      return removeLines(concat(parts));
 
     case "command_if": {
-      const keyword = formatKeyword("if", options);
+      const keyword = formatKeyword(
+        keywordAsWritten(node.children[0], options, "if"),
+        options,
+      );
       const openBraceIndex = node.children.findIndex((c) => c.type === "{");
 
       // Legacy If without braces.
@@ -914,7 +1108,14 @@ function printObjectScript(path, options, print) {
     case "else_block":
     case "elseif_block": {
       const isElseIf = node.type === "elseif_block";
-      const keyword = formatKeyword(isElseIf ? "elseif" : "else", options);
+      const keyword = formatKeyword(
+        keywordAsWritten(
+          node.children[0],
+          options,
+          isElseIf ? "elseif" : "else",
+        ),
+        options,
+      );
       const openBraceIndex = node.children.findIndex((c) => c.type === "{");
       const closeBraceIndex = node.children.findIndex((c) => c.type === "}");
       if (openBraceIndex === -1) return join(" ", parts);
@@ -938,7 +1139,10 @@ function printObjectScript(path, options, print) {
     }
 
     case "command_for": {
-      const keyword = formatKeyword("for", options);
+      const keyword = formatKeyword(
+        keywordAsWritten(node.children[0], options, "for"),
+        options,
+      );
       const openBraceIdx = node.children.findIndex((c) => c.type === "{");
       if (openBraceIdx !== -1) {
         const closeBraceIdx = node.children.findIndex((c) => c.type === "}");
@@ -977,15 +1181,20 @@ function printObjectScript(path, options, print) {
     }
 
     case "command_while": {
-      const keyword = formatKeyword("while", options);
+      const keyword = formatKeyword(
+        keywordAsWritten(node.children[0], options, "while"),
+        options,
+      );
       const openBraceIdx = node.children.findIndex((c) => c.type === "{");
 
       if (openBraceIdx !== -1) {
         const closeBraceIdx = node.children.findIndex((c) => c.type === "}");
 
         // The condition is everything between the While keyword and the {.
-        const conditionParts = parts.slice(1, openBraceIdx);
-        const conditionDoc = join(" ", conditionParts);
+        const conditionDoc = printConditionList(
+          parts.slice(1, openBraceIdx),
+          node.children.slice(1, openBraceIdx),
+        );
 
         const bodyNodes = node.children.slice(openBraceIdx + 1, closeBraceIdx);
         const bodyParts = parts.slice(openBraceIdx + 1, closeBraceIdx);
@@ -1010,14 +1219,19 @@ function printObjectScript(path, options, print) {
     }
 
     case "command_dowhile": {
-      const keywordDo = formatKeyword("do", options);
-      const keywordWhile = formatKeyword("while", options);
-
       const openBraceIdx = node.children.findIndex((c) => c.type === "{");
       const closeBraceIdx = node.children.findIndex((c) => c.type === "}");
       // Index of the `while` keyword (keyword_while, or plain `while` text).
       const whileNodeIdx = node.children.findIndex(
         (c) => c.type === "keyword_while" || c.type === "while",
+      );
+      const keywordDo = formatKeyword(
+        keywordAsWritten(node.children[0], options, "do"),
+        options,
+      );
+      const keywordWhile = formatKeyword(
+        keywordAsWritten(node.children[whileNodeIdx], options, "while"),
+        options,
       );
 
       // Body of Do { ... }.
@@ -1025,10 +1239,14 @@ function printObjectScript(path, options, print) {
       const bodyParts = parts.slice(openBraceIdx + 1, closeBraceIdx);
       const bodyDoc = printBlock(bodyNodes, bodyParts, options.originalText);
 
-      // Condition after While.
+      // Condition after While: every node up to the end (a list of
+      // conditions, comments).
       let conditionDoc = "";
-      if (whileNodeIdx !== -1 && parts[whileNodeIdx + 1]) {
-        conditionDoc = parts[whileNodeIdx + 1];
+      if (whileNodeIdx !== -1 && whileNodeIdx + 1 < node.children.length) {
+        conditionDoc = printConditionList(
+          parts.slice(whileNodeIdx + 1),
+          node.children.slice(whileNodeIdx + 1),
+        );
       }
 
       return group(
@@ -1115,32 +1333,57 @@ function printObjectScript(path, options, print) {
       return group(concat(output));
     }
 
-    case "pound_define":
-      return group(concat(["#Define ", join(" ", parts.slice(1))]));
-    case "pound_def1arg":
-      return group(concat(["#Def1Arg ", join(" ", parts.slice(1))]));
+    // The name, the parameters and the value of a macro are kept as written:
+    // a space before `(` would turn the parameters into the value.
+    case "pound_define": {
+      const keyword = DIRECTIVES[node.children[0]?.type];
+      if (!keyword || node.children.length < 2) {
+        return printLiteralLines(rawNodeText(node, options));
+      }
+      return concat([
+        keyword,
+        " ",
+        printLiteralLines(
+          options.originalText
+            .slice(node.children[1].startIndex, node.endIndex)
+            .trimEnd(),
+        ),
+      ]);
+    }
     case "pound_include":
       return group(concat(["#Include ", join(" ", parts.slice(1))]));
     case "pound_import":
       return group(concat(["#Import ", join(" ", parts.slice(1))]));
     case "pound_if":
-      return group(concat(["#If ", join(" ", parts.slice(1))]));
     case "pound_ifdef":
-      return group(concat(["#IfDef ", join(" ", parts.slice(1))]));
     case "pound_ifndef":
-      return group(concat(["#IfNDef ", join(" ", parts.slice(1))]));
     case "pound_else":
-      return "#Else";
-    case "pound_endif":
+      return printDirectiveBlock(node, parts, options);
+    // `#endif` after an `#If` whose first branch the grammar keeps opaque.
+    case "tag_end_if":
       return "#EndIf";
 
     // --- CLASSES ---
     case "class_definition": {
       const headerParts = [];
+      const keywordParts = [];
+      let inKeywords = false;
       let bodyDoc = "";
       node.children.forEach((child, index) => {
-        if (child.type === "class_body") bodyDoc = parts[index];
-        else headerParts.push(parts[index]);
+        if (child.type === "class_body") {
+          bodyDoc = parts[index];
+        } else if (child.type === "[") {
+          // `[ Abstract, Final ]`: the grammar puts the brackets, the
+          // keywords and the commas directly in the class definition.
+          inKeywords = true;
+        } else if (child.type === "]") {
+          inKeywords = false;
+          headerParts.push(concat(["[", join(", ", keywordParts), "]"]));
+        } else if (inKeywords) {
+          if (child.type !== ",") keywordParts.push(parts[index]);
+        } else {
+          headerParts.push(parts[index]);
+        }
       });
       return group(
         concat([join(" ", headerParts), braceSeparator(options), bodyDoc || ""]),
@@ -1203,7 +1446,12 @@ function printObjectScript(path, options, print) {
       // Only triggers with Language = objectscript contain statements.
       const isOpaque =
         node.type !== "trigger" ||
-        bodyNodes.some((child) => child.type.endsWith("_body_content"));
+        bodyNodes.some((child) => child.type.endsWith("_body_content")) ||
+        hasForeignLanguage(
+          node,
+          node.children[openBraceIdx].startIndex,
+          options,
+        );
       if (isOpaque) {
         return concat([
           header,
@@ -1237,17 +1485,26 @@ function printObjectScript(path, options, print) {
     // --- PARAMETER / PROPERTY ---
     case "parameter":
     case "property":
-    case "index": {
+    case "index":
+    case "relationship":
+    case "foreignkey":
+    case "projection": {
       const output = [];
       node.children.forEach((child, i) => {
         const part = parts[i];
         if (i > 0) {
           const prev = node.children[i - 1];
           // No space before ; , ) or the arguments of a property, nor
-          // after an opening parenthesis (`Index I On (A, B)`).
+          // after an opening parenthesis (`Index I On (A, B)`), nor between
+          // a name and its parentheses (`ForeignKey FK(Prop) References
+          // Cls(Idx)`).
+          const isNameCall =
+            child.type === "(" &&
+            ["foreignkey_name", "class_name"].includes(prev.type);
           if (
             ![";", ",", ")", "arguments"].includes(child.type) &&
-            prev.type !== "("
+            prev.type !== "(" &&
+            !isNameCall
           ) {
             // Space between words, including after a keyword_
             // (e.g. "Parameter"), and around "=".
@@ -1274,16 +1531,34 @@ function printObjectScript(path, options, print) {
         const tryParts = parts.slice(openBraceIdx + 1, closeBraceIdx);
         const tryDoc = printBlock(tryNodes, tryParts, options.originalText);
 
-        const catchParts = parts.slice(closeBraceIdx + 1);
+        // Catch and the comments between `}` and Catch: a comment on its own
+        // line stays there, and nothing may follow a line comment.
+        const tail = [];
+        for (let i = closeBraceIdx + 1; i < node.children.length; i++) {
+          const child = node.children[i];
+          const prev = node.children[i - 1];
+          const onNewLine = options.originalText
+            .slice(prev.endIndex, child.startIndex)
+            .includes("\n");
+          tail.push(
+            isLineComment(prev) || (onNewLine && child.type.includes("comment"))
+              ? hardline
+              : " ",
+            parts[i],
+          );
+        }
         return group(
           concat([
-            formatKeyword("try", options),
+            formatKeyword(
+              keywordAsWritten(node.children[0], options, "try"),
+              options,
+            ),
             " ",
             "{",
             tryDoc,
             hardline,
             "}",
-            catchParts.length > 0 ? concat([" ", join(" ", catchParts)]) : "",
+            concat(tail),
           ]),
         );
       }
@@ -1295,13 +1570,21 @@ function printObjectScript(path, options, print) {
       if (openBraceIdx !== -1 && closeBraceIdx !== -1) {
         const header = parts.slice(0, openBraceIdx);
         if (node.children[0]?.type === "keyword_catch") {
-          header[0] = formatKeyword("catch", options);
+          header[0] = formatKeyword(
+            keywordAsWritten(node.children[0], options, "catch"),
+            options,
+          );
         }
+        // `Catch ex` or `Catch (ex)`, without spaces inside the parentheses.
+        const headerDoc = printConditionList(
+          header,
+          node.children.slice(0, openBraceIdx),
+        );
         const bodyNodes = node.children.slice(openBraceIdx + 1, closeBraceIdx);
         const bodyParts = parts.slice(openBraceIdx + 1, closeBraceIdx);
         const bodyDoc = printBlock(bodyNodes, bodyParts, options.originalText);
         return group(
-          concat([join(" ", header), " ", "{", bodyDoc, hardline, "}"]),
+          concat([headerDoc, " ", "{", bodyDoc, hardline, "}"]),
         );
       }
       return join(" ", parts);
@@ -1395,6 +1678,30 @@ function printObjectScript(path, options, print) {
 
     case "byref_arg":
       return concat(parts);
+    case "superclass_method_call":
+    case "expression_call":
+    case "indirection":
+      return printChildrenWithGaps(node, parts, options);
+    // `Xecute ("code", arg1, .arg2):cond` and `Include (A, B)`: a space after
+    // each comma.
+    case "xecute_argument":
+    case "include_code":
+    case "include_generator":
+    case "import_code": {
+      const output = [];
+      node.children.forEach((child, i) => {
+        const prev = node.children[i - 1];
+        if (
+          i > 0 &&
+          ![",", ")", "post_conditional"].includes(child.type) &&
+          prev.type !== "("
+        ) {
+          output.push(" ");
+        }
+        output.push(parts[i]);
+      });
+      return concat(output);
+    }
     // The arguments of a macro are substituted as text: they are kept as written.
     case "macro_func_args":
       return rawNodeText(node, options);
@@ -1462,7 +1769,10 @@ function printObjectScript(path, options, print) {
 
     case "class_keywords":
     case "property_keywords":
-    case "parameter_keywords": {
+    case "parameter_keywords":
+    case "relationship_keywords":
+    case "foreignkey_keywords":
+    case "projection_keywords": {
       const content = [];
       node.children.forEach((child, index) => {
         if (!["[", "]", ","].includes(child.type)) content.push(parts[index]);

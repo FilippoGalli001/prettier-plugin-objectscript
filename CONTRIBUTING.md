@@ -83,12 +83,10 @@ Debug output is structured as one JSON record per line, is written only to `stde
 Using Prettier options:
 
 ```bash
-npx prettier --plugin ./index.js \
-  --object-script-debug \
-  --object-script-debug-nodes=oref_chain_segment,variable_datatype \
-  --object-script-debug-max=20 \
-  example.cls 2> objectscript-debug.log
+npx prettier --plugin ./index.js --object-script-debug --object-script-debug-nodes=oref_chain_segment,variable_datatype --object-script-debug-max=20 example.cls 2> objectscript-debug.log
 ```
+
+The command is on one line so that it works unchanged in Bash, PowerShell and CMD.
 
 The same filters can be supplied through environment variables:
 
@@ -103,8 +101,15 @@ OBJECTSCRIPT_DEBUG_MAX=20
 `OBJECTSCRIPT_DEBUG` can also directly contain a comma-separated node list:
 
 ```bash
-OBJECTSCRIPT_DEBUG=oref_chain_segment,json_object_literal_pair \
-  npx prettier --plugin ./index.js example.cls 2> objectscript-debug.log
+OBJECTSCRIPT_DEBUG=oref_chain_segment,json_object_literal_pair npx prettier --plugin ./index.js example.cls 2> objectscript-debug.log
+```
+
+In PowerShell, set the variable first:
+
+```powershell
+$env:OBJECTSCRIPT_DEBUG = "oref_chain_segment,json_object_literal_pair"
+npx prettier --plugin ./index.js example.cls 2> objectscript-debug.log
+Remove-Item Env:OBJECTSCRIPT_DEBUG
 ```
 
 For a readable Tree-sitter subtree without running Prettier:

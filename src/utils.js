@@ -28,6 +28,16 @@ const SPACE_SENSITIVE_TYPES = new Set(["for_parameter", "timeout"]);
 
 const SUBSCRIPT_OWNERS = new Set(["lvn", "gvn"]);
 
+/**
+ * Tells whether the node is a comment that runs to the end of the line
+ * (`//`, `;`, `#;`, ...). Whatever follows it must start on a new line.
+ * @param {object} node - The AST node.
+ * @returns {boolean}
+ */
+function isLineComment(node) {
+  return node.type.includes("comment") && node.type !== "block_comment";
+}
+
 function isFullyParenthesized(postConditional) {
   const expression = postConditional.children.find(
     (child) => child.type === "expression",
@@ -96,6 +106,16 @@ function joinWithCommas(parts, nodes) {
     const currType = nodes[i].type;
     const prevType = nodes[i - 1].type;
 
+    // Nothing may follow a line comment on its line.
+    if (isLineComment(nodes[i - 1])) {
+      if (currType === ",") {
+        result.push(hardline, ",", line);
+      } else {
+        result.push(hardline, part);
+      }
+      return;
+    }
+
     // Commands nested in a legacy If/For/Do must stay on the same line:
     // a line break would move them out of the outer command's scope.
     if (currType === "statement") {
@@ -146,15 +166,23 @@ function printConditionList(parts, nodes) {
     if (currType === ",") {
       res.push(",");
       res.push(line);
-    } else if (prevType === "(" || currType === ")" || currText === ".") {
-      // No space around parentheses or dots.
+    } else if (
+      prevType === "," ||
+      prevType === "(" ||
+      currType === ")" ||
+      currText === "."
+    ) {
+      // The comma already emitted its separator; no space around
+      // parentheses or dots.
       res.push(part);
     } else {
       res.push(" ");
       res.push(part);
     }
   });
-  return concat(res);
+  // Its own group: the list breaks after its commas only when it does not
+  // fit, not because the block that follows it spans several lines.
+  return group(indent(concat(res)));
 }
 
 /**
@@ -165,7 +193,7 @@ function printConditionList(parts, nodes) {
  * @param {object} node - The command AST node.
  * @returns {object|string} A Prettier doc with the arguments, or an empty string.
  */
-function printCommandArgs(path, parts, node) {
+function printCommandArgs(path, parts, node, skip = new Set()) {
   const argsIndices = [];
   node.children.forEach((child, i) => {
     const isHead =
@@ -173,7 +201,7 @@ function printCommandArgs(path, parts, node) {
       child.type === "post_conditional" ||
       child.type.includes("whitespace");
 
-    if (!isHead) {
+    if (!isHead && !skip.has(i)) {
       argsIndices.push(i);
     }
   });
@@ -253,7 +281,19 @@ function printMethodArgs(path, parts, node, options) {
 
     if (child.type === ",") {
       elements.push(",");
-      if (!compact) elements.push(line);
+      const next = node.children[i + 1];
+      // A comment after the comma on the same line stays there.
+      if (
+        next &&
+        isLineComment(next) &&
+        next.startPosition.row === child.endPosition.row
+      ) {
+        elements.push(" ");
+      } else if (!compact) {
+        elements.push(line);
+      }
+    } else if (isLineComment(child)) {
+      elements.push(parts[i], hardline);
     } else {
       elements.push(parts[i]);
     }
@@ -307,6 +347,8 @@ function printSmartType(parts, nodes) {
 }
 
 module.exports = {
+  isLineComment,
+  SUBSCRIPT_OWNERS,
   inSpaceSensitiveContext,
   endsWithArgumentlessCommand,
   joinWithCommas,

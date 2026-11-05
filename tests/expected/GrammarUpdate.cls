@@ -13,7 +13,7 @@ Class ObjectScript.GrammarUpdate Extends %Persistent
 
   ForeignKey OwnerFK(Code) References ObjectScript.Owner();
 
-  Relationship Owner As ObjectScript.Owner [ Cardinality = one, Inverse = Items ];
+  Relationship Owner As ObjectScript.Owner [Cardinality = one, Inverse = Items];
 
   ClientMethod Refresh(id As %String) As %String [Language = javascript]
   {

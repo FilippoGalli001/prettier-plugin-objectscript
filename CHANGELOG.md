@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.0.3] - 2026-11-05
+
+### Fixed
+
+These produced code that does not compile, that behaves differently, or that changes again when formatted a second time:
+
+- A legacy `If`, `Else` or `For` without braces is kept on one line. Wrapping a long `Set` after it moved the rest of the line out of its scope, and IRIS rejected the result.
+- A postconditional is never broken across lines, even when it is parenthesized (`Set:($Piece(...) = ...) x = 1`).
+- `#If`, `#IfDef`, `#IfNDef`, `#ElseIf`, `#Else` and `#EndIf` stay on their own lines, and the statements of every branch are kept. Before, the block was joined on one line and the `#Else` branch was lost.
+- `#Define` and `#Def1Arg` keep the macro name next to its parameters (`#Define Add(%a, %b)`) and `#Def1Arg` is no longer turned into `#Define`.
+- Parenthesized values in JSON arrays (`[1, (x + 1)]`) are kept intact.
+- Line comments inside call arguments, JSON literals and between `}` and `Catch` no longer swallow the code that follows them.
+- An argumentless `h` followed by a comment stays `Halt` instead of becoming `Hang`.
+- `Do { } While` keeps every condition and comment after `While`.
+- `If` and `For` without arguments (`If  Write 1`, `For  Quit:x`) keep the two spaces before the next command.
+- The body of a trigger with `Language = sql` (or another language other than ObjectScript) is copied as written instead of being formatted as ObjectScript.
+- `objectScriptBreakLongExpressions` no longer breaks subscripts (`^Data(a + b)`).
+
+### Changed
+
+- `objectScriptExpandCommands: false` also applies to block commands (`I x {`, `F i = 1:1:3 {`).
+- A list of conditions (`If a, b {`, `While a, b {`) breaks only when it does not fit.
+- Formatted: class keywords (`[Abstract, Final]`), `Relationship`, `ForeignKey` and `Projection`; `Else`, `Print`, `ZBreak`, `ZLoad`, `ZSave`, `ZTrap` and `ZQuit` commands; the arguments of `##super`, `##expression`, name indirection and `Xecute`; `Include`, `IncludeGenerator` and `Import` lists; `Catch (ex)`.
+- The README installs the plugin from the `v2.0.3` tag, shows the logo, and explains how to check the style in CI and before each commit.
+
+### Added
+
+- `tests/samples/Regressions.cls` and new checks in `tests/iris/Ops.cls` cover these cases; `npm run test:iris -- --verbose` prints the output of the IRIS check.
+
 ## [2.0.2] - 2026-11-01
 
 ### Changed

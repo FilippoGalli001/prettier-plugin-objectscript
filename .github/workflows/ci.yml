@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # The ObjectScript grammar is compiled by node-gyp during the install.
+      # Node.js 22 loads the prebuilt binaries of the parser: no compiler needed.
       - run: npm ci
       - run: npm test
 

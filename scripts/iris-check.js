@@ -10,7 +10,8 @@
  * variant must match those of the original files, and the output of
  * Check.Ops.Run() must be identical.
  *
- * Requires Docker. Usage: npm run test:iris [-- --keep]
+ * Requires Docker. Usage: npm run test:iris [-- --keep] [-- --verbose]
+ *   --verbose    also prints the output of Check.Ops.Run()
  *   IRIS_IMAGE   image to use (default intersystems/iris-community:latest-cd)
  */
 
@@ -23,6 +24,7 @@ const plugin = require("../index");
 
 const IMAGE = process.env.IRIS_IMAGE || "intersystems/iris-community:latest-cd";
 const KEEP = process.argv.includes("--keep");
+const VERBOSE = process.argv.includes("--verbose");
 const CONTAINER = `iris-check-${process.pid}`;
 const root = path.resolve(__dirname, "..");
 
@@ -179,9 +181,11 @@ async function main() {
     let failures = 0;
     const baseFixtures = normalize(found["FIXTURES orig"] || "");
     const baseRun = found["RUN orig"] || "";
-    if (!baseRun.includes("if1")) {
+    if (!baseRun.includes("run:complete")) {
       log(`The original Check.Ops did not run to completion:\n${baseRun}`);
       failures++;
+    } else if (VERBOSE) {
+      log(`Check.Ops output:\n${baseRun}`);
     }
     for (const variant of Object.keys(VARIANTS).filter((v) => v !== "orig")) {
       const fixtures = normalize(found[`FIXTURES ${variant}`] || "");

@@ -511,3 +511,51 @@ Method X() {
   );
   assert.equal(await format(wrapped, options), wrapped);
 });
+
+test("objectScriptBreakLongExpressions never breaks a subscript", async () => {
+  const input = `Class Demo {
+Method X() {
+ Set x=^GlobalData(firstVeryLongVariableName+secondVeryLongVariableName+thirdVeryLongVariableName)
+}
+}`;
+  const formatted = await format(input, {
+    objectScriptBreakLongExpressions: true,
+  });
+
+  assert.match(
+    formatted,
+    /Set x = \^GlobalData\(firstVeryLongVariableName \+ secondVeryLongVariableName \+ thirdVeryLongVariableName\)\n/,
+  );
+});
+
+test("objectScriptExpandCommands false also keeps block commands abbreviated", async () => {
+  const formatted = await format(
+    `Class Demo {
+Method X(x) {
+ i x { s a=1 } else { s a=2 }
+ f j=1:1:3 { w j }
+ d { s x=x-1 } while x>0
+}
+}`,
+    { objectScriptExpandCommands: false },
+  );
+
+  // Abbreviations stay abbreviated; keywords written in full stay in full.
+  assert.match(formatted, /\n {4}I x \{\n {6}S a = 1\n {4}\} Else \{/);
+  assert.match(formatted, /\n {4}F j = 1:1:3 \{\n {6}W j\n/);
+  assert.match(formatted, /\n {4}D \{\n {6}S x = x - 1\n {4}\} While x > 0\n/);
+});
+
+test("keeps the body of a trigger written in SQL as written", async () => {
+  const body = " INSERT INTO Log VALUES (1)";
+  const formatted = await format(
+    `Class Demo Extends %Persistent {
+Trigger T [ Event = INSERT, Language = sql ]
+{
+${body}
+}
+}`,
+  );
+
+  assert.ok(formatted.includes(`\n${body}\n`), formatted);
+});

@@ -45,8 +45,7 @@ Class ObjectScript.DataEntry3
   ClassMethod ValidPhone(ByRef phone As %String) As %Boolean
   {
     If $match(phone, "(\d{3}-)?\d{3}-\d{4}") {
-      Set:($match(phone,
-        "\d{3}-\d{4}")) phone = "617-"_phone // add default area code
+      Set:($match(phone, "\d{3}-\d{4}")) phone = "617-"_phone // add default area code
       Return 1
     } Else {
       Write !, "###-###-#### or ###-####"

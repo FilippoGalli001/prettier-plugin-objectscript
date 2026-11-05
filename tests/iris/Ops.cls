@@ -43,7 +43,48 @@ ClassMethod Run() As %Status
 	w "long:",long,!
 	w "call2:",..Add((firstOperandWithLongName+secondOperandWithLongName)*thirdOperandWithLongName-fourthOperandWithLongName,fifth+a),!
 	i a>b&&(b>c) { w "if1",! } elseif a=b { w "if2",! } else { w "if3",! }
+	s cond=0
+	i cond s firstLongVariableName=1,secondLongVariableName=2,thirdLongVariableName=3 w "legacy-if: wrong",!
+	w "legacy-if:",$d(firstLongVariableName),!
+	i a>b
+	i  w "test:yes",!
+	s n=0
+	f  s n=n+1 q:n>2
+	w "for:",n,!
+	s:($piece("aa,bb,cc",",",2)=$piece("xx,bb,yy",",",2)) samePiece=1 w "postcond:",$g(samePiece),!
+	s jarr=[1,(a+1),(b*2)],obj={"k":(a-1),"l":[(c*3)]}
+	w "json:",jarr.%ToJSON(),obj.%ToJSON(),!
+	#define Sum(%p,%q) (%p+%q)
+	#def1arg Raw(%x) %x
+	#if 1
+	w "pp:",$$$Sum(a,b),",",$$$Raw(a,b),!
+	#else
+	w "pp: wrong",!
+	#endif
+	w "quit:",..EarlyQuit(1),..EarlyQuit(0),!
+	s n=0
+	d {
+		s n=n+1
+	} while /* both */ n<5,n<3
+	w "dowhile:",n,!
+	try {
+		throw ##class(%Exception.General).%New("E")
+	}
+	// the error is caught below
+	catch (ex) {
+		w "catch:",ex.Name,!
+	}
+	s name="^CheckOps"
+	w "indirect:",@name@(a-6)+1,!
+	x ("(p) w ""xecute:"",p+1,!",a+1):a>0
+	w "run:complete",!
 	q $$$OK
+}
+
+ClassMethod EarlyQuit(x) As %String
+{
+	q:x=1 "one" // early return
+	q "other"
 }
 
 }

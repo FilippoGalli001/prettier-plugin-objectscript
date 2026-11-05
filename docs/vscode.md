@@ -73,6 +73,7 @@ If formatting is not available:
 3. verify that `.prettierrc` contains `"plugins": ["prettier-plugin-objectscript"]`;
 4. check that the current language mode is `ObjectScript Class` (`objectscript-class`);
 5. run **Developer: Reload Window**;
-6. inspect **View → Output → Prettier** for module-resolution errors.
+6. inspect **View → Output → Prettier** for module-resolution errors;
+7. if the Prettier extension stops or reports a crash when it loads the plugin, check **Help → About**: the Node.js version listed there is the one VS Code uses to run extensions, and like the command line it must be 22 or newer. Otherwise, update VS Code.
 
 Setting `prettier.prettierPath` is normally unnecessary and can make the workspace less portable.
