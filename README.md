@@ -97,10 +97,10 @@ If `npm install` fails with a `gyp ERR!` message, the toolchain is missing or no
 2. Install the workspace-local copy of Prettier and this plugin:
 
    ```bash
-   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.2.0
+   npm install --save-dev prettier git+https://github.com/FilippoGalli001/prettier-plugin-objectscript.git#v2.2.1
    ```
 
-   The plugin is installed from GitHub. The `#v2.2.0` suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`. To upgrade, run the same command with the newer tag.
+   The plugin is installed from GitHub. The `#v2.2.1` suffix selects a [tag](https://github.com/FilippoGalli001/prettier-plugin-objectscript/tags); without it, npm installs the latest commit of `main`. To upgrade, run the same command with the newer tag.
 
 3. Create `.prettierrc` in the project root:
 
@@ -208,9 +208,9 @@ The debugging options (`objectScriptDebug*`) are described in [CONTRIBUTING.md](
 
 ## Limitations
 
-- Supported files: class definitions (`.cls`, UDL format), routines (`.mac`, `.int`) and include files (`.inc`) in UDL format, which starts with a `ROUTINE` header. CSP pages are not supported.
+- Supported files: class definitions (`.cls`), routines (`.mac`, `.int`) and include files (`.inc`) in UDL text format, with or without a `ROUTINE` header. XML exports and CSP pages are not supported.
 - In include files, only the `ROUTINE` header and the preprocessor directives are formatted. Comments and lines of code are copied as written, with their indentation, because a command in column 1 of a routine becomes a label.
-- Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them.
+- Regions that Tree-sitter cannot parse are left exactly as written instead of being formatted, together with the rest of their lines. Enable `objectScriptStrictParsing` to turn them into errors, or use `npm run inspect:ast` to locate them. A known case: a `)` inside an SQL `--` comment ends `&sql(` for the grammar, so those lines are not formatted; a `/* */` comment avoids it.
 - Subscripts are never broken across lines, and long lines are wrapped only at the commas of function arguments. `objectScriptBreakLongExpressions` also breaks parenthesized expressions after their operators, but it is disabled by default because the InterSystems documentation does not state the rule for operators: check the result with the compiler before enabling it.
 
 ## Editor integration

@@ -1,7 +1,8 @@
 /**
  * @file parser.js
  * @description ObjectScript parsers based on the Tree-sitter grammars: UDL
- *              for class files, the routine grammar for include files.
+ *              for class files (.cls), the routine grammar for routines
+ *              (.mac, .int) and include files (.inc).
  */
 
 const Parser = require("tree-sitter");

@@ -16,9 +16,17 @@ const {
       group,
       line,
       softline,
+      trim,
     },
   },
 } = require("prettier");
+
+// The source of the routine being printed, or null for other files: in a
+// routine, comment lines are copied exactly, with their indentation.
+let routineSource = null;
+function setRoutineSource(text) {
+  routineSource = text;
+}
 
 // Contexts where a space ends the argument. A postconditional (`Do:a=1 Foo`)
 // cannot contain spaces or line breaks unless it is entirely parenthesized
@@ -131,17 +139,25 @@ function joinWithCommas(parts, nodes) {
 
     // Every line of a dotted block (`. Write x`) is a separate source line,
     // and so is a comment on its own line after the block.
-    const afterCommands = [
-      "statement",
-      "do_statement_after",
-      "dotted_statement",
-    ].includes(prevType);
-    if (
-      currType === "dotted_statement" ||
-      (afterCommands &&
-        currType.includes("comment") &&
-        nodes[i].startPosition.row > lastRow(nodes[i - 1]))
-    ) {
+    const afterCommands =
+      ["statement", "do_statement_after", "dotted_statement"].includes(
+        prevType,
+      ) || prevType.includes("comment");
+    const commentLine =
+      afterCommands &&
+      (currType.includes("comment") || currType === "documatic_line") &&
+      nodes[i].startPosition.row > lastRow(nodes[i - 1]);
+    if (commentLine && routineSource !== null) {
+      const node = nodes[i];
+      const lineStart = routineSource.lastIndexOf("\n", node.startIndex - 1) + 1;
+      result.push(
+        hardline,
+        trim,
+        routineSource.slice(lineStart, node.endIndex).trimEnd(),
+      );
+      return;
+    }
+    if (currType === "dotted_statement" || commentLine) {
       result.push(dedentToRoot(concat([hardline, part])));
       return;
     }
@@ -391,6 +407,7 @@ function printSmartType(parts, nodes) {
 }
 
 module.exports = {
+  setRoutineSource,
   isLineComment,
   SUBSCRIPT_OWNERS,
   inSpaceSensitiveContext,

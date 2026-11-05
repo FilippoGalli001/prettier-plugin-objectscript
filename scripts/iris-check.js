@@ -61,7 +61,7 @@ async function writeVariants(tmp) {
       for (const file of fs.readdirSync(from)) {
         const text = fs.readFileSync(path.join(from, file), "utf8");
         const output =
-          options && /\.(cls|inc|mac)$/.test(file)
+          options && /\.(cls|inc|mac|int)$/.test(file)
             ? await prettier.format(text, {
                 parser: parserForFile(file).name,
                 plugins: [plugin],

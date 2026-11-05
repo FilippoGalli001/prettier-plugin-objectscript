@@ -87,15 +87,25 @@ function labelOf(line) {
   return /^[%A-Za-z0-9]/.test(line) ? line.split(/[\s(;]/)[0] : "";
 }
 
-// Where formatting moved a line or a label, or "" if it did not.
+function isCommentLine(line) {
+  return /^(;|\/\/|#;)/.test(line.trim());
+}
+
+// Where formatting moved a line, a label or a comment line, or "" if it did
+// not. Blank lines at the end count too; only the final newline is ignored.
 function lineChange(text, output) {
-  const before = text.trimEnd().split("\n");
-  const after = output.trimEnd().split("\n");
+  const before = text.replace(/\n$/, "").split("\n");
+  const after = output.replace(/\n$/, "").split("\n");
   if (before.length !== after.length) {
     return `${before.length} -> ${after.length} lines`;
   }
-  const line = before.findIndex((l, i) => labelOf(l) !== labelOf(after[i]));
-  return line === -1 ? "" : `label moved at line ${line + 1}`;
+  const label = before.findIndex((l, i) => labelOf(l) !== labelOf(after[i]));
+  if (label !== -1) return `label moved at line ${label + 1}`;
+  // Comment lines (`;;` data read with $TEXT) must stay exactly as written.
+  const comment = before.findIndex(
+    (l, i) => isCommentLine(l) && l.trimEnd() !== after[i].trimEnd(),
+  );
+  return comment === -1 ? "" : `comment line changed at line ${comment + 1}`;
 }
 
 // The routine under a temporary name, so that the system routine is left

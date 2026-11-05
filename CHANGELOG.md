@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] - 2026-11-05
+
+### Fixed
+
+- Routines: a block on several lines is formatted only if every line keeps what starts it (a label, a brace, `Else`, a command). Two changes in opposite directions, such as `{ s a=1` split and `}` joined with `else {`, kept the number of lines but moved the lines in between, labels included: such a block is now copied as written.
+- Routines: blank lines at the start and the end of the file, and after `{` or before `}` of a procedure, are kept. A file without a `ROUTINE` header whose first line is code keeps it indented.
+- Routines and include files: comment lines inside dotted blocks and directive blocks, and `///` lines, are copied exactly, with their indentation.
+- An argumentless command followed by another command inside `#If`/`#IfDef`/`#Else` keeps two spaces (`Quit:x=1  Set y = 2`); with one space the second command became the argument of the first.
+- `#ElseIf` in `#IfDef`/`#IfNDef` blocks, and a second `#ElseIf`, are formatted. In a routine, `#Else` and `#ElseIf` of a block in column 1 stay in column 1.
+- Include files: an `#If` block with indented `#;` comments is idempotent.
+- A line comment inside an expression (also in a parenthesized postconditional) no longer swallows the operand that follows it.
+- On a line with a parse error, the other nodes are copied as written: a `)` in an SQL `--` comment ends `&sql(` for the grammar, and the rest of the line was formatted as commands.
+
+### Changed
+
+- `npm run test:iris:routines` also checks that comment lines stay exactly as written and that blank lines at the end are kept; `npm run test:iris` also formats `.int` files.
+- `package.json` description and README: all supported file types; files with or without a `ROUTINE` header.
+
 ## [2.2.0] - 2026-11-05
 
 ### Added

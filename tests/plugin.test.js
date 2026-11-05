@@ -646,3 +646,86 @@ test("an argumentless command nested after Do keeps two spaces", async () => {
 
   assert.match(formatted, /\n {4}For  Do  Quit:x>3  Set x = x \+ 1\n/);
 });
+
+// Cases from the second review (2.2.0).
+async function formatFile(code, filepath) {
+  const formatted = await format(code, { filepath });
+  assert.equal(await format(formatted, { filepath }), formatted, "idempotent");
+  assert.equal(diagnostics(formatted, filepath).length, 0, formatted);
+  return formatted;
+}
+
+test("an argumentless command keeps two spaces inside a directive block", async () => {
+  const routine = await formatFile("ROUTINE T\n#ifdef FOO\n q:x=1  s y=2\n#endif\n", "T.mac");
+  assert.match(routine, /\n {2}Quit:x=1  Set y = 2\n/);
+  const cls = await formatFile(
+    "Class Demo {\nMethod X(x) {\n #ifdef FOO\n q:x=1  s y=2\n #endif\n}\n}",
+    "Demo.cls",
+  );
+  assert.match(cls, /\n {4}Quit:x=1  Set y = 2\n/);
+});
+
+test("routines: a block keeps the line of every label and brace", async () => {
+  const input =
+    "ROUTINE T\nTag\n if x=1 { s a=1\nMid s b=2\n }\n else {\n  s c=3\n }\nProc(a) public {\n\n s x=a+1\n q x }\n";
+  const formatted = await formatFile(input, "T.mac");
+  const before = input.split("\n");
+  const after = formatted.split("\n");
+  assert.equal(after.length, before.length);
+  for (const [i, line] of before.entries()) {
+    if (/^\S/.test(line)) assert.equal(after[i].split(/[ (]/)[0], line.split(/[ (]/)[0]);
+  }
+});
+
+test("routines keep their blank lines at the start and the end", async () => {
+  const formatted = await formatFile("\nROUTINE T\nTag\n s x=1\n\n\n", "T.mac");
+  assert.equal(formatted, "\nROUTINE T\nTag\n  Set x = 1\n\n\n");
+});
+
+test("include files: comments in an #If block keep their indentation", async () => {
+  const formatted = await formatFile(
+    "ROUTINE T [Type=INC]\n#if 1\n   #; three spaces\n #define X 1\n#endif\n#ifdef Y\n   ; comment\n#define Z 1\n#endif\n",
+    "T.inc",
+  );
+  assert.equal(
+    formatted,
+    "ROUTINE T [Type=INC]\n#If 1\n   #; three spaces\n#Define X 1\n#EndIf\n#IfDef Y\n   ; comment\n#Define Z 1\n#EndIf\n",
+  );
+});
+
+test("a line comment inside a postconditional does not swallow the code after it", async () => {
+  const formatted = await formatFile(
+    "Class Demo {\nMethod X(a) {\n Quit:(a = // check\n  1) 0\n}\n}",
+    "Demo.cls",
+  );
+  assert.match(formatted, /\/\/ check\n\s+1\) 0\n/);
+});
+
+test("routines: comment lines between dotted lines are copied exactly", async () => {
+  const formatted = await formatFile(
+    "ROUTINE T\nTag\n d\n . s x=1\n;;col1 data\n ; comment 1\n ; comment 2\n . s y=2\n q\n",
+    "T.mac",
+  );
+  assert.match(formatted, /\n;;col1 data\n ; comment 1\n ; comment 2\n {2}\. Set y = 2\n/);
+});
+
+test("a line with a parse error is kept as written", async () => {
+  const formatted = await format(
+    "Class Demo {\nMethod X() {\n &sql(\n  SELECT Name INTO :n FROM Sample.Person -- with ) inside\n )\n}\n}",
+  );
+  assert.match(formatted, /SELECT Name INTO :n FROM Sample\.Person -- with \) inside\n/);
+  assert.doesNotMatch(formatted, /Else/);
+});
+
+test("#ElseIf is formatted in #IfDef blocks, and #Else stays in column 1 of a routine", async () => {
+  const cls = await formatFile(
+    "Class Demo {\nMethod X() {\n #ifdef FOO\n s x=1\n #elseif BAR\n s x=2\n #endif\n}\n}",
+    "Demo.cls",
+  );
+  assert.match(cls, /\n {4}#ElseIf BAR\n {4}Set x = 2\n/);
+  const routine = await formatFile(
+    "ROUTINE T\n#ifdef FOO\n s x=1\n#else\n s x=2\n#endif\n q\n",
+    "T.mac",
+  );
+  assert.match(routine, /\n#Else\n {2}Set x = 2\n#EndIf\n/);
+});
